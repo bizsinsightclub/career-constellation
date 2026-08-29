@@ -1,0 +1,20 @@
+{
+  "name": "career-constellation",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "커리어 별자리 — 경력을 별자리 소켓 지도 위에 점등시키는 서비스",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.11"
+  }
+}

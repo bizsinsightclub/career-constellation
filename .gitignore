@@ -1,0 +1,23 @@
+# 의존성
+node_modules
+
+# 빌드 산출물
+dist
+dist-ssr
+
+# 로컬 환경
+*.local
+.DS_Store
+
+# 로그
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 에디터
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# OMC 오케스트레이션 세션 상태 (레포에 포함 불필요)
+.omc/

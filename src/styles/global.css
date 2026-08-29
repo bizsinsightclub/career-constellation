@@ -1,0 +1,71 @@
+/*
+ * 전역 리셋 + 배경 3중 레이어 (design.md §4).
+ * 화면 전체가 "한 장의 카드"라는 은유를 배경부터 세운다.
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--bone);
+  font-family: var(--font-ui);
+  /* ① 기저 배경 — void */
+  background-color: var(--void);
+  overflow: hidden; /* 카드 한 장의 정지된 화면 */
+}
+
+#root {
+  position: relative;
+  isolation: isolate; /* 배경 레이어 z-index 격리 */
+}
+
+/* ② 중앙 상단에서 내려오는 veil 방사형 그라디언트 */
+.bg-veil {
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  background: radial-gradient(
+    120% 90% at 50% -10%,
+    var(--veil) 0%,
+    rgba(30, 21, 51, 0.55) 38%,
+    rgba(13, 10, 22, 0) 72%
+  );
+  pointer-events: none;
+}
+
+/* ③ 미세 노이즈 (투명도 3%, 종이 질감의 암시) — 인라인 SVG feTurbulence */
+.bg-noise {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  opacity: 0.03;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* 배경 잔별 레이어는 별도 컴포넌트(StarfieldBackground)에서 그린다 */
+.bg-stars {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* prefers-reduced-motion: 모션 최소화 (design.md §7) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

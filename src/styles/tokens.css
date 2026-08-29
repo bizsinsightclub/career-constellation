@@ -1,0 +1,28 @@
+/*
+ * design.md의 디자인 토큰을 CSS 변수로 이식한 파일.
+ * 색·타이포·간격의 단일 출처(single source of truth).
+ */
+:root {
+  /* ── 컬러 토큰 (design.md §2) ────────────────────────────
+   * 유채색 축은 「금(candle→gilt→moon)」과 「은(lunar)」 둘뿐.
+   * 금 = 사용자의 빛(경력), 은 = 세계의 구조(선·심볼·눈금). 절대 섞지 않음. */
+  --void: #0d0a16;        /* 기저 배경 — 자줏빛 도는 흑청색 (순흑 금지) */
+  --veil: #1e1533;        /* 배경 상층 그라디언트·패널 바탕 */
+  --socket-dim: #463a5e;  /* 미점등 소켓·천구도 눈금선 */
+  --star-candle: #c77f35; /* tier 1 — 촛불빛 호박색 */
+  --star-gilt: #e6be6a;   /* tier 2 — 금박 */
+  --star-moon: #f2eddf;   /* tier 3 — 달빛 백금색 */
+  --lunar: #b9bfdd;       /* 은빛 보조색 — 간선 발광·달 위상 심볼 */
+  --bone: #ddd2bc;        /* 해석 본문 텍스트 (오래된 카드지 색) */
+  --oxblood: #6e2438;     /* 경고·삭제 등 극히 제한적 사용 */
+
+  /* ── 타이포그래피 (design.md §3) ──────────────────────── */
+  --font-title-latin: 'Cinzel Decorative', serif;         /* 카드 이름·아르카나 번호 */
+  --font-title-ko: 'MaruBuri', 'Noto Serif KR', serif;    /* 한글 표제 */
+  --font-body: 'Noto Serif KR', serif;                    /* 해석 본문 (행간 1.9) */
+  --font-ui: 'Pretendard', system-ui, sans-serif;         /* 툴팁·점수 등 기능 텍스트 */
+
+  /* ── 카드 프레임 (design.md §4) ───────────────────────── */
+  --frame-inset: 18px;    /* 화면 가장자리에서 프레임까지 여백 */
+  --frame-gold: var(--star-gilt);
+}

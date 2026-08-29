@@ -1,0 +1,36 @@
+/*
+ * 카드 프레임 (design.md §4 시그니처).
+ * 화면 가장자리에 이중 금선(1px + 0.5px) 테두리 + 네 모서리 오컬트 문양.
+ * "화면 전체가 한 장의 카드"임을 시각적으로 선언하는 장치.
+ */
+
+.card-frame {
+  position: fixed;
+  inset: var(--frame-inset);
+  z-index: 50;
+  pointer-events: none; /* 프레임은 장식 — 지도 조작을 막지 않음 */
+  /* 바깥 금선 1px */
+  border: 1px solid color-mix(in srgb, var(--frame-gold) 70%, transparent);
+  border-radius: 2px;
+  box-shadow: 0 0 24px rgba(0, 0, 0, 0.35) inset;
+}
+
+/* 안쪽 금선 0.5px — 이중선 효과 */
+.card-frame::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 0.5px solid color-mix(in srgb, var(--frame-gold) 45%, transparent);
+  border-radius: 1px;
+}
+
+/* 네 모서리 문양 배치 */
+.card-frame__corner {
+  position: absolute;
+  color: color-mix(in srgb, var(--frame-gold) 80%, transparent);
+  opacity: 0.85;
+}
+.card-frame__corner--tl { top: 10px; left: 10px; }
+.card-frame__corner--tr { top: 10px; right: 10px; }
+.card-frame__corner--bl { bottom: 10px; left: 10px; }
+.card-frame__corner--br { bottom: 10px; right: 10px; }

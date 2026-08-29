@@ -1,0 +1,43 @@
+/* 앱 루트 레이아웃 — M0에서는 배경 위 중앙 워드마크만 (지도는 M1에서) */
+
+.app-root {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: grid;
+  place-items: center;
+}
+
+/* 중앙 워드마크 — 폰트 로드와 분위기를 확인하는 임시 표제 */
+.wordmark {
+  text-align: center;
+  user-select: none;
+}
+
+.wordmark__arcana {
+  font-family: var(--font-title-latin);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  font-size: clamp(14px, 2.2vw, 20px);
+  color: color-mix(in srgb, var(--star-gilt) 85%, transparent);
+  margin: 0 0 14px;
+}
+
+.wordmark__title {
+  font-family: var(--font-title-ko);
+  letter-spacing: 0.05em; /* Cinzel과 병기 시 +0.05em (design.md §3) */
+  font-size: clamp(34px, 7vw, 68px);
+  font-weight: 400;
+  color: var(--bone);
+  margin: 0;
+  text-shadow: 0 0 30px rgba(230, 190, 106, 0.15);
+}
+
+.wordmark__sub {
+  font-family: var(--font-body);
+  font-weight: 300;
+  font-size: clamp(12px, 1.6vw, 15px);
+  color: color-mix(in srgb, var(--lunar) 70%, transparent);
+  letter-spacing: 0.04em;
+  margin: 18px 0 0;
+}
