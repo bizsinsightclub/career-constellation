@@ -1,0 +1,91 @@
+/* 하단 입력 패널 (design.md §8) */
+
+.input-panel {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 45;
+  width: min(680px, calc(100vw - 72px));
+  background: color-mix(in srgb, var(--veil) 82%, transparent);
+  backdrop-filter: blur(6px);
+  border: 0.5px solid color-mix(in srgb, var(--star-gilt) 30%, transparent);
+  border-radius: 4px;
+  padding: 14px 14px 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.input-panel__textarea {
+  width: 100%;
+  min-height: 60px;
+  max-height: 180px;
+  resize: vertical;
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--bone);
+  background: transparent;
+  border: none;
+  outline: none;
+  display: block;
+}
+.input-panel__textarea::placeholder {
+  color: color-mix(in srgb, var(--lunar) 55%, transparent);
+}
+
+.input-panel__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.input-panel__status {
+  flex: 1;
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  line-height: 1.4;
+  min-height: 16px;
+}
+.input-panel__status--error { color: color-mix(in srgb, var(--oxblood) 60%, var(--bone)); }
+.input-panel__status--info { color: color-mix(in srgb, var(--lunar) 75%, transparent); }
+.input-panel__status--done { color: var(--star-gilt); }
+
+.input-panel__btn {
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  border-radius: 2px;
+  padding: 9px 14px;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.input-panel__btn--ghost {
+  color: color-mix(in srgb, var(--lunar) 75%, transparent);
+  background: none;
+  border: 0.5px solid color-mix(in srgb, var(--socket-dim) 90%, transparent);
+}
+.input-panel__btn--ghost:hover {
+  color: var(--bone);
+  border-color: color-mix(in srgb, var(--star-gilt) 45%, transparent);
+}
+.input-panel__btn--primary {
+  color: var(--void);
+  background: var(--star-gilt);
+  border: none;
+  font-size: 13px;
+}
+.input-panel__btn--primary:hover {
+  background: var(--star-moon);
+}
+.input-panel__btn:disabled {
+  background: var(--socket-dim);
+  color: color-mix(in srgb, var(--bone) 45%, transparent);
+  border-color: transparent;
+  cursor: not-allowed;
+}
+
+/* 분석 중 점 애니메이션 */
+.input-panel__loading::after {
+  content: '별을 읽는 중…';
+}

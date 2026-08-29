@@ -1,0 +1,150 @@
+/* API 키 입력 카드 (design.md §8 첫 진입 화면) */
+
+.keymodal__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--void) 78%, transparent);
+  backdrop-filter: blur(2px);
+  padding: 24px;
+}
+
+.keymodal {
+  position: relative;
+  width: min(460px, 100%);
+  background: linear-gradient(180deg, var(--veil), color-mix(in srgb, var(--veil) 60%, var(--void)));
+  border: 1px solid color-mix(in srgb, var(--star-gilt) 55%, transparent);
+  border-radius: 3px;
+  padding: 34px 30px 28px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+/* 안쪽 금선 (카드 프레임 문법의 축소판) */
+.keymodal::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 0.5px solid color-mix(in srgb, var(--star-gilt) 30%, transparent);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.keymodal__arcana {
+  font-family: var(--font-title-latin);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  font-size: 10px;
+  text-align: center;
+  color: color-mix(in srgb, var(--star-gilt) 75%, transparent);
+  margin: 0 0 10px;
+}
+.keymodal__title {
+  font-family: var(--font-title-ko);
+  font-size: 19px;
+  font-weight: 400;
+  text-align: center;
+  color: var(--bone);
+  margin: 0 0 6px;
+  letter-spacing: 0.03em;
+}
+.keymodal__sub {
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  line-height: 1.6;
+  text-align: center;
+  color: color-mix(in srgb, var(--lunar) 75%, transparent);
+  margin: 0 0 22px;
+}
+.keymodal__sub a {
+  color: var(--star-gilt);
+  text-decoration: none;
+  border-bottom: 0.5px solid color-mix(in srgb, var(--star-gilt) 50%, transparent);
+}
+
+.keymodal__field {
+  display: block;
+  margin-bottom: 16px;
+}
+.keymodal__label {
+  display: block;
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  color: color-mix(in srgb, var(--bone) 80%, transparent);
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+.keymodal__input,
+.keymodal__select {
+  width: 100%;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--bone);
+  background: var(--void);
+  border: 0.5px solid var(--socket-dim);
+  border-radius: 2px;
+  padding: 10px 12px;
+  outline: none;
+}
+.keymodal__input:focus,
+.keymodal__select:focus {
+  border-color: color-mix(in srgb, var(--star-gilt) 65%, transparent);
+}
+.keymodal__select option {
+  background: var(--veil);
+  color: var(--bone);
+}
+.keymodal__hint {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: color-mix(in srgb, var(--lunar) 60%, transparent);
+  margin: 6px 0 0;
+  line-height: 1.5;
+}
+
+.keymodal__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 22px;
+}
+.keymodal__save {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  color: var(--void);
+  background: var(--star-gilt);
+  border: none;
+  border-radius: 2px;
+  padding: 12px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: background 0.2s ease;
+}
+.keymodal__save:hover {
+  background: var(--star-moon);
+}
+.keymodal__save:disabled {
+  background: var(--socket-dim);
+  color: color-mix(in srgb, var(--bone) 50%, transparent);
+  cursor: not-allowed;
+}
+.keymodal__skip {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: color-mix(in srgb, var(--lunar) 70%, transparent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+}
+.keymodal__skip:hover {
+  color: var(--bone);
+}
+.keymodal__privacy {
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: color-mix(in srgb, var(--lunar) 55%, transparent);
+  text-align: center;
+  margin: 18px 0 0;
+}

@@ -34,7 +34,7 @@ function CelestialChart() {
   )
 }
 
-export default function ConstellationMap({ tiers = {}, onNodeClick }) {
+export default function ConstellationMap({ tiers = {}, evidence = {}, onNodeClick }) {
   const layout = useMemo(() => computeLayout(constellation), [])
   const [view, setView] = useState({ scale: 1, tx: 0, ty: 0 })
   const [panning, setPanning] = useState(false)
@@ -133,7 +133,13 @@ export default function ConstellationMap({ tiers = {}, onNodeClick }) {
         {/* 노드 */}
         <g>
           {layout.nodes.map((n) => (
-            <StarNode key={n.id} node={n} tier={tiers[n.id] || 0} onClick={handleNodeClick} />
+            <StarNode
+              key={n.id}
+              node={n}
+              tier={tiers[n.id] || 0}
+              evidence={evidence[n.id]}
+              onClick={handleNodeClick}
+            />
           ))}
         </g>
 

@@ -63,8 +63,15 @@ function StarVisual({ tier, id }) {
   return <circle className="node__socket" r="5" />
 }
 
-export default function StarNode({ node, tier = 0, onClick }) {
+const TIER_NAME = ['', '촛불', '금박', '달빛']
+
+export default function StarNode({ node, tier = 0, evidence, onClick }) {
   const { x, y, label } = node
+  // 툴팁: 노드명 · tier · 근거 1줄 (design.md §8)
+  let tip = label
+  if (tier > 0) tip += ` · ${TIER_NAME[tier]}`
+  if (evidence && evidence.length) tip += `\n“${evidence[0]}”`
+
   return (
     <g
       className={`node node--tier${tier}`}
@@ -76,7 +83,7 @@ export default function StarNode({ node, tier = 0, onClick }) {
       {/* 넉넉한 투명 히트영역 (호버·클릭용) */}
       <circle className="node__hit" r="12" fill="transparent" />
       {/* 접근성/네이티브 툴팁 */}
-      <title>{label}</title>
+      <title>{tip}</title>
     </g>
   )
 }
