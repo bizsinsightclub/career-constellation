@@ -1,27 +1,61 @@
 /*
- * mapping.js — 점수화된 결과를 실제 지도 노드에 결속하고 IlluminationResult를 만든다.
- * LLM이 목록에 없는 id를 반환하면 여기서 걸러낸다. 같은 id 중복은 높은 점수로 병합.
+ * mapping.js — 추출된 스킬 매칭을 구(sephira)로 집계한다.
+ * 화면은 구 중심이므로, 스킬 점수를 소속 구로 모아 구 tier를 정한다.
+ * LLM이 목록에 없는 스킬 id를 반환하면 걸러낸다.
  */
 import constellation from '../../data/constellation.json'
 
-const NODE_IDS = new Set(constellation.nodes.map((n) => n.id))
-
-// scored: [{id, score, tier, evidence}] → { nodes: [...] }
-export function toIlluminationResult(scored) {
-  const byId = new Map()
-  ;(scored || []).forEach((s) => {
-    if (!NODE_IDS.has(s.id)) return // 존재하지 않는 노드 무시
-    const prev = byId.get(s.id)
-    if (!prev || s.score > prev.score) byId.set(s.id, s)
+// 스킬 id → 구 id, 스킬 id → 라벨
+const SKILL_TO_SPHERE = new Map()
+const SKILL_LABEL = new Map()
+constellation.spheres.forEach((s) => {
+  ;(s.skills || []).forEach((k) => {
+    SKILL_TO_SPHERE.set(k.id, s.id)
+    SKILL_LABEL.set(k.id, k.label)
   })
-  return { nodes: [...byId.values()] }
+})
+
+// 추출 프롬프트에 넣을 전체 스킬 목록(union)
+export function allSkills() {
+  const list = []
+  constellation.spheres.forEach((s) => (s.skills || []).forEach((k) => list.push(k)))
+  return list
 }
 
-// IlluminationResult → { [id]: tier } (렌더용)
+// 구 점수 → tier (집계 점수 기준, 필요시 튜닝)
+function sphereTier(score) {
+  if (score >= 10) return 3
+  if (score >= 4) return 2
+  return 1
+}
+
+/*
+ * scored: [{id, score, tier, evidence}] (스킬 단위)
+ * → { spheres: [{id, tier, score, matched:[{label, evidence}]}] } (구 단위)
+ */
+export function aggregateToSpheres(scored) {
+  const bySphere = new Map()
+  ;(scored || []).forEach((s) => {
+    const sphereId = SKILL_TO_SPHERE.get(s.id)
+    if (!sphereId) return // 존재하지 않는 스킬 무시
+    if (!bySphere.has(sphereId)) bySphere.set(sphereId, { score: 0, matched: [] })
+    const agg = bySphere.get(sphereId)
+    agg.score += s.score
+    agg.matched.push({ label: SKILL_LABEL.get(s.id) || s.id, evidence: s.evidence || [] })
+  })
+
+  const spheres = []
+  bySphere.forEach((agg, id) => {
+    spheres.push({ id, score: agg.score, tier: sphereTier(agg.score), matched: agg.matched })
+  })
+  return { spheres }
+}
+
+// 결과 → { [sphereId]: tier }
 export function resultToTiers(result) {
   const tiers = {}
-  result.nodes.forEach((n) => {
-    tiers[n.id] = n.tier
+  result.spheres.forEach((s) => {
+    tiers[s.id] = s.tier
   })
   return tiers
 }

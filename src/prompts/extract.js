@@ -21,9 +21,12 @@ export function buildExtractPrompt(nodes) {
 - quantifiedResult: 정량적 성과·수치·수상(예: "매출 30% 증가", "대상 수상")이 있으면 true.
 - leadershipRole: 리드·관리·총괄·팀장 등 리더 역할이면 true.
 - 애매하면 신호(boolean)는 false로 두고, 억지로 매칭하지 마세요.
-- 반드시 지정된 JSON 형식으로만 답하세요. JSON 외의 어떤 텍스트도 출력하지 마세요.
+- 반드시 아래 형식의 JSON으로만 답하세요. 최상위 키는 정확히 "matches" 여야 합니다. JSON 외의 어떤 텍스트도 출력하지 마세요.
 
-[노드 목록]
+[출력 형식 예시]
+{"matches":[{"id":"brand-strategy","mentions":2,"yearsMentioned":true,"quantifiedResult":false,"leadershipRole":true,"evidence":["8년간 브랜드 전략 총괄"]}]}
+
+[스킬 목록]
 ${list}`
 }
 

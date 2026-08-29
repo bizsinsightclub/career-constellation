@@ -2,15 +2,14 @@ import { useReducer, useCallback, useState } from 'react'
 import './App.css'
 import StarfieldBackground from './components/StarfieldBackground.jsx'
 import CardFrame from './components/CardFrame.jsx'
-import ConstellationMap from './components/ConstellationMap.jsx'
+import SephirotTree from './components/SephirotTree.jsx'
 import ApiKeyModal from './components/ApiKeyModal.jsx'
 import InputPanel from './components/InputPanel.jsx'
-import constellation from '../data/constellation.json'
 import { DEFAULT_MODEL } from './lib/models.js'
 import { generateJSON } from './lib/gemini.js'
 import { buildExtractPrompt, EXTRACT_SCHEMA } from './prompts/extract.js'
 import { scoreMatches } from './logic/scoring.js'
-import { toIlluminationResult } from './logic/mapping.js'
+import { allSkills, aggregateToSpheres } from './logic/mapping.js'
 
 /* ── localStorage 안전 접근 ─────────────────────────── */
 const LS_KEY = 'cc.apiKey'
@@ -26,59 +25,55 @@ function lsSet(k, v) {
   try {
     localStorage.setItem(k, v)
   } catch {
-    /* 무시 (프라이빗 모드 등) */
+    /* 무시 */
   }
 }
 
 /*
- * 점등 상태 리듀서.
- *   tiers:    { [id]: 1|2|3 }
- *   scores:   { [id]: number }   (분석 결과일 때)
- *   evidence: { [id]: string[] } (분석 근거)
+ * 점등 상태 리듀서 — 이제 구(sephira) 단위.
+ *   tiers:    { [sphereId]: 1|2|3 }
+ *   scores:   { [sphereId]: number }
+ *   matched:  { [sphereId]: [{label, evidence}] }
  */
 function illuminationReducer(state, action) {
   switch (action.type) {
     case 'CYCLE': {
       const cur = state.tiers[action.id] || 0
-      const next = (cur + 1) % 4 // 0→1→2→3→0 (수동/개발용)
+      const next = (cur + 1) % 4 // 수동/개발용
       const tiers = { ...state.tiers }
       const scores = { ...state.scores }
-      const evidence = { ...state.evidence }
+      const matched = { ...state.matched }
       if (next === 0) delete tiers[action.id]
       else tiers[action.id] = next
-      delete scores[action.id] // 수동 점등은 점수·근거 없음
-      delete evidence[action.id]
-      return { tiers, scores, evidence }
+      delete scores[action.id]
+      delete matched[action.id]
+      return { tiers, scores, matched }
     }
     case 'SET_RESULT': {
       const tiers = {}
       const scores = {}
-      const evidence = {}
-      action.result.nodes.forEach((n) => {
-        tiers[n.id] = n.tier
-        scores[n.id] = n.score
-        evidence[n.id] = n.evidence
+      const matched = {}
+      action.result.spheres.forEach((s) => {
+        tiers[s.id] = s.tier
+        scores[s.id] = s.score
+        matched[s.id] = s.matched
       })
-      return { tiers, scores, evidence }
+      return { tiers, scores, matched }
     }
     case 'RESET':
-      return { tiers: {}, scores: {}, evidence: {} }
+      return { tiers: {}, scores: {}, matched: {} }
     default:
       return state
   }
 }
 
 export default function App() {
-  const [state, dispatch] = useReducer(illuminationReducer, {
-    tiers: {},
-    scores: {},
-    evidence: {},
-  })
+  const [state, dispatch] = useReducer(illuminationReducer, { tiers: {}, scores: {}, matched: {} })
   const [apiKey, setApiKey] = useState(() => lsGet(LS_KEY))
   const [model, setModel] = useState(() => lsGet(LS_MODEL) || DEFAULT_MODEL)
-  const [modalOpen, setModalOpen] = useState(() => !lsGet(LS_KEY)) // 첫 진입에 키 없으면 열림
+  const [modalOpen, setModalOpen] = useState(() => !lsGet(LS_KEY))
   const [loading, setLoading] = useState(false)
-  const [status, setStatus] = useState(null) // {kind, text}
+  const [status, setStatus] = useState(null)
 
   const cycleNode = useCallback((id) => dispatch({ type: 'CYCLE', id }), [])
   const reset = useCallback(() => {
@@ -95,30 +90,47 @@ export default function App() {
     setModalOpen(false)
   }, [])
 
-  // 추출 → 점수 → 점등
+  // [DEV 전용] 구독제 claude로 테스트 (localStorage cc.devllm='1'). 프로덕션 빌드에선 DCE로 제거됨.
+  const devMode = import.meta.env.DEV && lsGet('cc.devllm') === '1'
+
   const analyze = useCallback(
     async (text) => {
-      if (!apiKey) {
+      if (!apiKey && !devMode) {
         setModalOpen(true)
         return
       }
       setLoading(true)
       setStatus(null)
       try {
-        const systemInstruction = buildExtractPrompt(constellation.nodes)
-        const json = await generateJSON({
-          apiKey,
-          model,
-          systemInstruction,
-          userText: text,
-          responseSchema: EXTRACT_SCHEMA,
-        })
-        const result = toIlluminationResult(scoreMatches(json.matches))
-        if (result.nodes.length === 0) {
+        const systemInstruction = buildExtractPrompt(allSkills())
+        let json
+        if (devMode) {
+          const r = await fetch('/__llm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ system: systemInstruction, user: text }),
+          })
+          const d = await r.json()
+          if (d.error) throw new Error(d.error)
+          const c = String(d.text || '').replace(/```json/gi, '').replace(/```/g, '').trim()
+          json = JSON.parse(c.slice(c.indexOf('{'), c.lastIndexOf('}') + 1))
+        } else {
+          json = await generateJSON({
+            apiKey,
+            model,
+            systemInstruction,
+            userText: text,
+            responseSchema: EXTRACT_SCHEMA,
+          })
+        }
+        // 스키마 미강제(dev) 시 최상위 키가 matches/nodes/배열로 흔들릴 수 있어 관대하게 정규화
+        const matches = Array.isArray(json) ? json : json.matches || json.nodes || json.results || []
+        const result = aggregateToSpheres(scoreMatches(matches))
+        if (result.spheres.length === 0) {
           setStatus({ kind: 'info', text: '관련된 별을 찾지 못했습니다. 조금 더 구체적으로 들려주세요.' })
         } else {
           dispatch({ type: 'SET_RESULT', result })
-          setStatus({ kind: 'done', text: `${result.nodes.length}개의 별에 빛이 깃들었습니다.` })
+          setStatus({ kind: 'done', text: `${result.spheres.length}개의 구에 빛이 깃들었습니다.` })
         }
       } catch (e) {
         setStatus({ kind: 'error', text: e?.message || '알 수 없는 오류가 발생했습니다.' })
@@ -126,45 +138,38 @@ export default function App() {
         setLoading(false)
       }
     },
-    [apiKey, model],
+    [apiKey, model, devMode],
   )
 
   return (
     <div className="app-root">
-      {/* 배경 레이어 */}
       <div className="bg-veil" aria-hidden="true" />
       <div className="bg-noise" aria-hidden="true" />
       <StarfieldBackground />
 
-      {/* 별자리 지도 */}
-      <ConstellationMap tiers={state.tiers} evidence={state.evidence} onNodeClick={cycleNode} />
+      <SephirotTree tiers={state.tiers} onSphereClick={cycleNode} />
 
-      {/* 카드 프레임 */}
       <CardFrame />
 
-      {/* 상단 표제 */}
       <header className="stage-title">
         <p className="stage-title__arcana">✦ THE CONSTELLATION OF CAREER ✦</p>
         <h1 className="stage-title__name">커리어 별자리</h1>
       </header>
 
-      {/* 모두 끄기 */}
       {litCount > 0 && (
         <button className="reset-btn" onClick={reset}>
           모두 끄기 ({litCount})
         </button>
       )}
 
-      {/* 하단 입력 패널 */}
       <InputPanel
-        hasKey={!!apiKey}
+        hasKey={!!apiKey || devMode}
         loading={loading}
         status={status}
         onAnalyze={analyze}
         onOpenSettings={() => setModalOpen(true)}
       />
 
-      {/* API 키 입력 화면 */}
       {modalOpen && (
         <ApiKeyModal
           initialKey={apiKey}

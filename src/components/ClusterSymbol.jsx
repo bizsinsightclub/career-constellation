@@ -69,6 +69,29 @@ const PATHS = {
       <path d="M24 41 V35" />
     </>
   ),
+  // 태양/장미 — 창작·조화 (Tif'eret)
+  sun: (
+    <>
+      <circle cx="24" cy="24" r="7" />
+      <path d="M24 8 V13 M24 35 V40 M8 24 H13 M35 24 H40 M12.7 12.7 l3.5 3.5 M31.8 31.8 l3.5 3.5 M35.3 12.7 l-3.5 3.5 M16.2 31.8 l-3.5 3.5" />
+    </>
+  ),
+  // 깃펜 — 표현·커뮤니케이션 (Hod)
+  quill: (
+    <>
+      <path d="M12 36 C20 34 30 24 36 12 C24 16 16 24 12 36 Z" />
+      <path d="M14 34 L22 26" />
+      <path d="M11 37 L9 39" />
+    </>
+  ),
+  // 오브/사각 — 현현·현재의 나 (Malkhut)
+  orb: (
+    <>
+      <circle cx="24" cy="24" r="9" />
+      <rect x="17" y="17" width="14" height="14" rx="1" />
+      <path d="M24 15 V33 M15 24 H33" />
+    </>
+  ),
 }
 
 export default function ClusterSymbol({ name, cx = 0, cy = 0, size = 30 }) {
