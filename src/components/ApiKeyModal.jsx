@@ -1,21 +1,52 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import './ApiKeyModal.css'
-import { MODELS, DEFAULT_MODEL } from '../lib/models.js'
+import { listModels } from '../lib/gemini.js'
+import { tierHint, pickDefaultModel, sortModels } from '../lib/models.js'
 
 /*
  * API 키 입력 화면 (design.md §8).
- * "열쇠를 꽂아야 카드를 읽을 수 있습니다" 톤 + 기능적 안내.
- * 키는 브라우저 localStorage에만 저장(부모가 처리). 미입력 시 '지도 먼저 둘러보기'로 닫을 수 있음.
+ * 키를 넣고 '모델 불러오기'를 누르면, 그 키로 실제 사용 가능한 모델만 드롭다운에 채운다
+ * (하드코딩된 모델 id 추측을 없앰). 키는 브라우저 localStorage에만 저장(부모가 처리).
  */
-export default function ApiKeyModal({ initialKey = '', initialModel = DEFAULT_MODEL, onSave, onClose, canClose = false }) {
+export default function ApiKeyModal({ initialKey = '', initialModel = '', onSave, onClose, canClose = false }) {
   const [key, setKey] = useState(initialKey)
   const [model, setModel] = useState(initialModel)
-  const selected = MODELS.find((m) => m.id === model) || MODELS[0]
+  const [models, setModels] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
+  const loadModels = useCallback(
+    async (k) => {
+      const trimmed = (k ?? key).trim()
+      if (!trimmed) return
+      setLoading(true)
+      setError(null)
+      try {
+        const list = sortModels(await listModels(trimmed))
+        setModels(list)
+        setModel((cur) => (list.some((m) => m.id === cur) ? cur : pickDefaultModel(list)))
+        if (list.length === 0) setError('이 키로 사용할 수 있는 분석 모델이 없습니다.')
+      } catch (e) {
+        setModels([])
+        setError(e?.message || '모델 목록을 불러오지 못했습니다.')
+      } finally {
+        setLoading(false)
+      }
+    },
+    [key],
+  )
+
+  // 저장된 키가 있으면 열릴 때 자동으로 목록 로드
+  useEffect(() => {
+    if (initialKey) loadModels(initialKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const selected = models.find((m) => m.id === model)
+  const canSave = key.trim() && model && models.length > 0
   const save = () => {
-    const trimmed = key.trim()
-    if (!trimmed) return
-    onSave?.(trimmed, model)
+    if (!canSave) return
+    onSave?.(key.trim(), model)
   }
 
   return (
@@ -33,40 +64,57 @@ export default function ApiKeyModal({ initialKey = '', initialModel = DEFAULT_MO
 
         <label className="keymodal__field">
           <span className="keymodal__label">API 키</span>
-          <input
-            className="keymodal__input"
-            type="password"
-            value={key}
-            onChange={(e) => setKey(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && save()}
-            placeholder="AIza… 로 시작하는 키를 붙여넣으세요"
-            autoComplete="off"
-            spellCheck="false"
-          />
+          <div className="keymodal__inputrow">
+            <input
+              className="keymodal__input"
+              type="password"
+              value={key}
+              onChange={(e) => setKey(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && loadModels()}
+              placeholder="AIza… 로 시작하는 키를 붙여넣으세요"
+              autoComplete="off"
+              spellCheck="false"
+            />
+            <button
+              className="keymodal__load"
+              onClick={() => loadModels()}
+              disabled={!key.trim() || loading}
+            >
+              {loading ? '불러오는 중…' : '모델 불러오기'}
+            </button>
+          </div>
         </label>
 
-        <label className="keymodal__field">
-          <span className="keymodal__label">분석 모델</span>
-          <select
-            className="keymodal__select"
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-          >
-            {MODELS.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.label} — {m.free ? '무료 티어 가능' : '유료 전용'}
-              </option>
-            ))}
-          </select>
-          <p className="keymodal__hint">
-            {selected.price}
-            <br />
-            {selected.note}
-          </p>
-        </label>
+        {models.length > 0 && (
+          <label className="keymodal__field">
+            <span className="keymodal__label">분석 모델</span>
+            <select
+              className="keymodal__select"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+            >
+              {models.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.displayName ? `${m.displayName} (${m.id})` : m.id}
+                </option>
+              ))}
+            </select>
+            <p className="keymodal__hint">
+              {tierHint(model)}
+              {selected?.description ? (
+                <>
+                  <br />
+                  {selected.description}
+                </>
+              ) : null}
+            </p>
+          </label>
+        )}
+
+        {error && <p className="keymodal__error">{error}</p>}
 
         <div className="keymodal__actions">
-          <button className="keymodal__save" onClick={save} disabled={!key.trim()}>
+          <button className="keymodal__save" onClick={save} disabled={!canSave}>
             열쇠 꽂기
           </button>
           {canClose && (

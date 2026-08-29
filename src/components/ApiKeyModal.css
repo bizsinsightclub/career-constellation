@@ -102,6 +102,51 @@
   line-height: 1.5;
 }
 
+/* 키 입력 + 모델 불러오기 버튼 한 줄 */
+.keymodal__inputrow {
+  display: flex;
+  gap: 8px;
+}
+.keymodal__inputrow .keymodal__input {
+  width: auto;
+  flex: 1;
+  min-width: 0;
+}
+.keymodal__load {
+  flex: 0 0 auto;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--bone);
+  background: color-mix(in srgb, var(--star-gilt) 16%, transparent);
+  border: 0.5px solid color-mix(in srgb, var(--star-gilt) 45%, transparent);
+  border-radius: 2px;
+  padding: 0 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s ease;
+}
+.keymodal__load:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--star-gilt) 28%, transparent);
+}
+.keymodal__load:disabled {
+  color: color-mix(in srgb, var(--bone) 40%, transparent);
+  border-color: var(--socket-dim);
+  cursor: not-allowed;
+}
+
+/* 오류 문구 */
+.keymodal__error {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--oxblood) 55%, var(--bone));
+  background: color-mix(in srgb, var(--oxblood) 14%, transparent);
+  border: 0.5px solid color-mix(in srgb, var(--oxblood) 45%, transparent);
+  border-radius: 2px;
+  padding: 8px 10px;
+  margin: 0 0 4px;
+}
+
 .keymodal__actions {
   display: flex;
   flex-direction: column;
