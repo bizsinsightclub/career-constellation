@@ -22,6 +22,9 @@ export function allSkills() {
   return list
 }
 
+// 유효한 스킬 id 집합 (LLM 환각 필터용)
+export const SKILL_IDS = new Set(allSkills().map((k) => k.id))
+
 // 구 점수 → tier (집계 점수 기준, 필요시 튜닝)
 function sphereTier(score) {
   if (score >= 10) return 3

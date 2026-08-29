@@ -5,14 +5,19 @@
   left: 50%;
   bottom: 24px;
   transform: translateX(-50%);
-  z-index: 45;
-  width: min(680px, calc(100vw - 72px));
-  background: color-mix(in srgb, var(--veil) 82%, transparent);
+  z-index: 55; /* 카드 프레임(50)보다 위 — 모서리 문양에 안 가리게 */
+  width: min(680px, calc(100vw - 32px));
+  background: color-mix(in srgb, var(--veil) 88%, transparent);
   backdrop-filter: blur(6px);
   border: 0.5px solid color-mix(in srgb, var(--star-gilt) 30%, transparent);
   border-radius: 4px;
   padding: 14px 14px 12px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+@media (max-width: 520px) {
+  .input-panel {
+    bottom: 12px;
+  }
 }
 
 .input-panel__textarea {
@@ -45,6 +50,19 @@
   font-size: 11.5px;
   line-height: 1.4;
   min-height: 16px;
+}
+/* 좁은 화면: 상태 문구는 한 줄 전체, 버튼은 아래 줄에 정렬 */
+@media (max-width: 520px) {
+  .input-panel__row {
+    flex-wrap: wrap;
+  }
+  .input-panel__status {
+    flex-basis: 100%;
+    margin-bottom: 8px;
+  }
+  .input-panel__btn--primary {
+    margin-left: auto;
+  }
 }
 .input-panel__status--error { color: color-mix(in srgb, var(--oxblood) 60%, var(--bone)); }
 .input-panel__status--info { color: color-mix(in srgb, var(--lunar) 75%, transparent); }

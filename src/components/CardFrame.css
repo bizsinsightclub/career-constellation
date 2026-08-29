@@ -34,3 +34,13 @@
 .card-frame__corner--tr { top: 10px; right: 10px; }
 .card-frame__corner--bl { bottom: 10px; left: 10px; }
 .card-frame__corner--br { bottom: 10px; right: 10px; }
+
+/* 좁은 화면에선 모서리 문양이 UI와 겹쳐 혼란 → 숨김 */
+@media (max-width: 640px) {
+  .card-frame__corner {
+    display: none;
+  }
+  .card-frame {
+    inset: 8px;
+  }
+}

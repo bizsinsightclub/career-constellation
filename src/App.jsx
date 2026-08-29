@@ -2,14 +2,14 @@ import { useReducer, useCallback, useState } from 'react'
 import './App.css'
 import StarfieldBackground from './components/StarfieldBackground.jsx'
 import CardFrame from './components/CardFrame.jsx'
-import SephirotTree from './components/SephirotTree.jsx'
+import ConstellationSky from './components/ConstellationSky.jsx'
 import ApiKeyModal from './components/ApiKeyModal.jsx'
 import InputPanel from './components/InputPanel.jsx'
 import { DEFAULT_MODEL } from './lib/models.js'
 import { generateJSON } from './lib/gemini.js'
 import { buildExtractPrompt, EXTRACT_SCHEMA } from './prompts/extract.js'
 import { scoreMatches } from './logic/scoring.js'
-import { allSkills, aggregateToSpheres } from './logic/mapping.js'
+import { allSkills, aggregateToSpheres, SKILL_IDS } from './logic/mapping.js'
 
 /* ── localStorage 안전 접근 ─────────────────────────── */
 const LS_KEY = 'cc.apiKey'
@@ -30,10 +30,9 @@ function lsSet(k, v) {
 }
 
 /*
- * 점등 상태 리듀서 — 이제 구(sephira) 단위.
- *   tiers:    { [sphereId]: 1|2|3 }
- *   scores:   { [sphereId]: number }
- *   matched:  { [sphereId]: [{label, evidence}] }
+ * 점등 상태 리듀서 — 스킬(세부별) 단위.
+ *   tiers:    { [skillId]: 1|2|3 }
+ *   evidence: { [skillId]: string[] }
  */
 function illuminationReducer(state, action) {
   switch (action.type) {
@@ -41,41 +40,38 @@ function illuminationReducer(state, action) {
       const cur = state.tiers[action.id] || 0
       const next = (cur + 1) % 4 // 수동/개발용
       const tiers = { ...state.tiers }
-      const scores = { ...state.scores }
-      const matched = { ...state.matched }
+      const evidence = { ...state.evidence }
       if (next === 0) delete tiers[action.id]
       else tiers[action.id] = next
-      delete scores[action.id]
-      delete matched[action.id]
-      return { tiers, scores, matched }
+      delete evidence[action.id]
+      return { tiers, evidence }
     }
     case 'SET_RESULT': {
       const tiers = {}
-      const scores = {}
-      const matched = {}
-      action.result.spheres.forEach((s) => {
+      const evidence = {}
+      action.scored.forEach((s) => {
+        if (!SKILL_IDS.has(s.id)) return
         tiers[s.id] = s.tier
-        scores[s.id] = s.score
-        matched[s.id] = s.matched
+        evidence[s.id] = s.evidence
       })
-      return { tiers, scores, matched }
+      return { tiers, evidence }
     }
     case 'RESET':
-      return { tiers: {}, scores: {}, matched: {} }
+      return { tiers: {}, evidence: {} }
     default:
       return state
   }
 }
 
 export default function App() {
-  const [state, dispatch] = useReducer(illuminationReducer, { tiers: {}, scores: {}, matched: {} })
+  const [state, dispatch] = useReducer(illuminationReducer, { tiers: {}, evidence: {} })
   const [apiKey, setApiKey] = useState(() => lsGet(LS_KEY))
   const [model, setModel] = useState(() => lsGet(LS_MODEL) || DEFAULT_MODEL)
   const [modalOpen, setModalOpen] = useState(() => !lsGet(LS_KEY))
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState(null)
 
-  const cycleNode = useCallback((id) => dispatch({ type: 'CYCLE', id }), [])
+  const cycleSkill = useCallback((id) => dispatch({ type: 'CYCLE', id }), [])
   const reset = useCallback(() => {
     dispatch({ type: 'RESET' })
     setStatus(null)
@@ -123,14 +119,17 @@ export default function App() {
             responseSchema: EXTRACT_SCHEMA,
           })
         }
-        // 스키마 미강제(dev) 시 최상위 키가 matches/nodes/배열로 흔들릴 수 있어 관대하게 정규화
         const matches = Array.isArray(json) ? json : json.matches || json.nodes || json.results || []
-        const result = aggregateToSpheres(scoreMatches(matches))
-        if (result.spheres.length === 0) {
+        const scored = scoreMatches(matches).filter((s) => SKILL_IDS.has(s.id))
+        const domainAgg = aggregateToSpheres(scored)
+        if (scored.length === 0) {
           setStatus({ kind: 'info', text: '관련된 별을 찾지 못했습니다. 조금 더 구체적으로 들려주세요.' })
         } else {
-          dispatch({ type: 'SET_RESULT', result })
-          setStatus({ kind: 'done', text: `${result.spheres.length}개의 구에 빛이 깃들었습니다.` })
+          dispatch({ type: 'SET_RESULT', scored })
+          setStatus({
+            kind: 'done',
+            text: `${scored.length}개의 별이 깃들어 ${domainAgg.spheres.length}개 영역이 빛납니다.`,
+          })
         }
       } catch (e) {
         setStatus({ kind: 'error', text: e?.message || '알 수 없는 오류가 발생했습니다.' })
@@ -144,10 +143,11 @@ export default function App() {
   return (
     <div className="app-root">
       <div className="bg-veil" aria-hidden="true" />
+      <div className="bg-nebula" aria-hidden="true" />
       <div className="bg-noise" aria-hidden="true" />
       <StarfieldBackground />
 
-      <SephirotTree tiers={state.tiers} onSphereClick={cycleNode} />
+      <ConstellationSky skillTiers={state.tiers} onSkillClick={cycleSkill} />
 
       <CardFrame />
 

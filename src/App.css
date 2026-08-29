@@ -29,11 +29,19 @@
 .stage-title__name {
   font-family: var(--font-title-ko);
   letter-spacing: 0.06em;
-  font-size: clamp(20px, 2.6vw, 30px);
+  font-size: clamp(18px, 2.6vw, 30px);
   font-weight: 400;
   color: var(--bone);
   margin: 0;
   text-shadow: 0 0 24px rgba(230, 190, 106, 0.18);
+}
+@media (max-width: 640px) {
+  .stage-title {
+    top: 16px;
+  }
+  .stage-title__arcana {
+    font-size: 8px;
+  }
 }
 
 /* 하단 조작 안내 */
@@ -57,9 +65,9 @@
 /* 모두 끄기 버튼 */
 .reset-btn {
   position: fixed;
-  top: 34px;
-  right: 34px;
-  z-index: 45;
+  top: 20px;
+  right: 22px;
+  z-index: 55;
   font-family: var(--font-ui);
   font-size: 12px;
   letter-spacing: 0.03em;

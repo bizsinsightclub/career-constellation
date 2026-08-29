@@ -8,17 +8,24 @@
   place-items: center;
   background: color-mix(in srgb, var(--void) 78%, transparent);
   backdrop-filter: blur(2px);
-  padding: 24px;
+  padding: 16px;
+  overflow-y: auto; /* 작은 화면에서 스크롤 가능 */
 }
 
 .keymodal {
   position: relative;
-  width: min(460px, 100%);
+  box-sizing: border-box;
+  width: min(440px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
   background: linear-gradient(180deg, var(--veil), color-mix(in srgb, var(--veil) 60%, var(--void)));
   border: 1px solid color-mix(in srgb, var(--star-gilt) 55%, transparent);
   border-radius: 3px;
-  padding: 34px 30px 28px;
+  padding: 30px 26px 24px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+.keymodal * {
+  box-sizing: border-box;
 }
 /* 안쪽 금선 (카드 프레임 문법의 축소판) */
 .keymodal::before {
@@ -41,12 +48,13 @@
 }
 .keymodal__title {
   font-family: var(--font-title-ko);
-  font-size: 19px;
+  font-size: clamp(16px, 5vw, 19px);
   font-weight: 400;
   text-align: center;
   color: var(--bone);
   margin: 0 0 6px;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
+  word-break: keep-all;
 }
 .keymodal__sub {
   font-family: var(--font-ui);
@@ -102,7 +110,7 @@
   line-height: 1.5;
 }
 
-/* 키 입력 + 모델 불러오기 버튼 한 줄 */
+/* 키 입력 + 모델 불러오기 버튼 한 줄 (좁은 화면에선 세로 배치) */
 .keymodal__inputrow {
   display: flex;
   gap: 8px;
@@ -111,6 +119,14 @@
   width: auto;
   flex: 1;
   min-width: 0;
+}
+@media (max-width: 460px) {
+  .keymodal__inputrow {
+    flex-direction: column;
+  }
+  .keymodal__load {
+    padding: 10px 12px;
+  }
 }
 .keymodal__load {
   flex: 0 0 auto;
