@@ -85,7 +85,12 @@
   cursor: not-allowed;
 }
 
-/* 분석 중 점 애니메이션 */
-.input-panel__loading::after {
-  content: '별을 읽는 중…';
+/* 분석 중 문구 — 은은한 명멸 (문구 자체는 React가 회전) */
+.input-panel__loading {
+  color: color-mix(in srgb, var(--star-gilt) 85%, transparent);
+  animation: reading-shimmer 2.6s ease-in-out infinite;
+}
+@keyframes reading-shimmer {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
 }

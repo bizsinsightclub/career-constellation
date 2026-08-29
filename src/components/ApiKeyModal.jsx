@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import './ApiKeyModal.css'
 import { listModels } from '../lib/gemini.js'
-import { tierHint, pickDefaultModel, sortModels } from '../lib/models.js'
+import { tierHint, pickDefaultModel, curateModels } from '../lib/models.js'
 
 /*
  * API 키 입력 화면 (design.md §8).
@@ -22,7 +22,7 @@ export default function ApiKeyModal({ initialKey = '', initialModel = '', onSave
       setLoading(true)
       setError(null)
       try {
-        const list = sortModels(await listModels(trimmed))
+        const list = curateModels(await listModels(trimmed))
         setModels(list)
         setModel((cur) => (list.some((m) => m.id === cur) ? cur : pickDefaultModel(list)))
         if (list.length === 0) setError('이 키로 사용할 수 있는 분석 모델이 없습니다.')
@@ -87,7 +87,7 @@ export default function ApiKeyModal({ initialKey = '', initialModel = '', onSave
 
         {models.length > 0 && (
           <label className="keymodal__field">
-            <span className="keymodal__label">분석 모델</span>
+            <span className="keymodal__label">분석 모델 · 가성비·최신 순</span>
             <select
               className="keymodal__select"
               value={model}
