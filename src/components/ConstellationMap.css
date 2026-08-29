@@ -1,0 +1,88 @@
+/* 별자리 지도 — 화면을 채우는 SVG 무대 (배경 위, 카드 프레임 아래) */
+
+.map-svg {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  display: block;
+  touch-action: none; /* 커스텀 pan/zoom을 위해 브라우저 제스처 차단 */
+  cursor: grab;
+}
+.map-svg.is-panning {
+  cursor: grabbing;
+}
+
+/* ── 배경 천구도 (design.md §4) ─────────────────────── */
+.chart-ring {
+  fill: none;
+  stroke: var(--socket-dim);
+  opacity: 0.15;
+}
+.chart-tick {
+  stroke: var(--socket-dim);
+  opacity: 0.1;
+}
+
+/* ── 간선 (design.md §6, 미점등) ────────────────────── */
+.edge {
+  fill: none;
+  stroke: var(--socket-dim);
+  stroke-width: 0.6;
+  opacity: 0.28;
+}
+.edge--hub {
+  stroke-width: 0.8;
+  opacity: 0.4;
+}
+.edge--bridge {
+  opacity: 0.22;
+  stroke-dasharray: 2 5; /* 클러스터를 잇는 의미상 연결은 점선으로 구분 */
+}
+
+/* ── 클러스터 중심 심볼 ─────────────────────────────── */
+.cluster-symbol {
+  color: var(--socket-dim); /* 미점등 (하위 노드 점등 시 --lunar로: M2) */
+}
+.cluster-label {
+  fill: var(--socket-dim);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-anchor: middle;
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+/* ── 노드 (미점등 소켓) ─────────────────────────────── */
+.node__socket {
+  fill: none;
+  stroke: var(--socket-dim);
+  stroke-width: 1;
+  transition: stroke 0.15s ease;
+}
+.node:hover .node__socket {
+  stroke: var(--lunar); /* 호버 시 은빛 강조 */
+}
+.node {
+  cursor: pointer;
+}
+
+/* ── 중앙 허브 (현재의 나 — 항상 점등) ──────────────── */
+.hub__star {
+  fill: var(--star-gilt);
+  filter: drop-shadow(0 0 6px rgba(230, 190, 106, 0.8));
+  animation: hub-pulse 4s ease-in-out infinite;
+}
+.hub__label {
+  fill: var(--bone);
+  font-family: var(--font-title-ko);
+  font-size: 13px;
+  text-anchor: middle;
+  letter-spacing: 0.05em;
+}
+@keyframes hub-pulse {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+}
