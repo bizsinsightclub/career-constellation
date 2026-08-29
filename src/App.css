@@ -51,4 +51,27 @@
   letter-spacing: 0.03em;
   color: color-mix(in srgb, var(--lunar) 60%, transparent);
   margin: 0;
+  padding: 0 24px;
+}
+
+/* 모두 끄기 버튼 */
+.reset-btn {
+  position: fixed;
+  top: 34px;
+  right: 34px;
+  z-index: 45;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  color: var(--bone);
+  background: color-mix(in srgb, var(--veil) 70%, transparent);
+  border: 0.5px solid color-mix(in srgb, var(--star-gilt) 40%, transparent);
+  border-radius: 2px;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+.reset-btn:hover {
+  color: var(--star-gilt);
+  border-color: color-mix(in srgb, var(--star-gilt) 70%, transparent);
 }

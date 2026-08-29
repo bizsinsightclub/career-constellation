@@ -34,11 +34,31 @@ function CelestialChart() {
   )
 }
 
-export default function ConstellationMap() {
+export default function ConstellationMap({ tiers = {}, onNodeClick }) {
   const layout = useMemo(() => computeLayout(constellation), [])
   const [view, setView] = useState({ scale: 1, tx: 0, ty: 0 })
   const [panning, setPanning] = useState(false)
   const drag = useRef(null)
+  const moved = useRef(false) // 이번 제스처가 '드래그'였는지 (클릭과 구분)
+
+  // 점등 상태에서 파생: 점등 노드 집합 + 활성 클러스터 집합
+  const { activeClusters } = useMemo(() => {
+    const active = new Set()
+    layout.nodes.forEach((n) => {
+      if (tiers[n.id] > 0) active.add(n.cluster)
+    })
+    return { activeClusters: active }
+  }, [tiers, layout])
+
+  // 어떤 점(허브·클러스터중심·노드)이 '켜진' 상태인가
+  const isPointLit = useCallback(
+    (id) => {
+      if (id === layout.hub.id) return true // 허브는 항상 점등
+      if (activeClusters.has(id)) return true // 활성 클러스터 중심
+      return tiers[id] > 0 // 점등 노드
+    },
+    [activeClusters, tiers, layout.hub.id],
+  )
 
   // 휠: 확대/축소 (0.5~4배)
   const onWheel = useCallback((e) => {
@@ -49,13 +69,14 @@ export default function ConstellationMap() {
   // 드래그: 이동
   const onPointerDown = useCallback((e) => {
     drag.current = { x: e.clientX, y: e.clientY }
+    moved.current = false
     setPanning(true)
-    e.currentTarget.setPointerCapture?.(e.pointerId)
   }, [])
   const onPointerMove = useCallback((e) => {
     if (!drag.current) return
     const dx = e.clientX - drag.current.x
     const dy = e.clientY - drag.current.y
+    if (Math.abs(dx) + Math.abs(dy) > 3) moved.current = true
     drag.current = { x: e.clientX, y: e.clientY }
     setView((v) => ({ ...v, tx: v.tx + dx, ty: v.ty + dy }))
   }, [])
@@ -63,6 +84,15 @@ export default function ConstellationMap() {
     drag.current = null
     setPanning(false)
   }, [])
+
+  // 노드 클릭 — 단, 이번 제스처가 드래그였다면 무시
+  const handleNodeClick = useCallback(
+    (id) => {
+      if (moved.current) return
+      onNodeClick?.(id)
+    },
+    [onNodeClick],
+  )
 
   return (
     <svg
@@ -83,24 +113,27 @@ export default function ConstellationMap() {
         {/* 간선 (노드 아래) */}
         <g>
           {layout.edges.map((e, i) => (
-            <EdgeLine key={i} edge={e} />
+            <EdgeLine key={i} edge={e} lit={isPointLit(e.from) && isPointLit(e.to)} />
           ))}
         </g>
 
         {/* 클러스터 중심 심볼 + 라벨 */}
-        {layout.clusters.map((c) => (
-          <g className="cluster-symbol" key={c.id}>
-            <ClusterSymbol name={c.symbol} cx={c.x} cy={c.y} size={32} />
-            <text className="cluster-label" x={c.x} y={c.y + 34}>
-              {c.label}
-            </text>
-          </g>
-        ))}
+        {layout.clusters.map((c) => {
+          const active = activeClusters.has(c.id)
+          return (
+            <g className={`cluster-symbol${active ? ' is-active' : ''}`} key={c.id}>
+              <ClusterSymbol name={c.symbol} cx={c.x} cy={c.y} size={32} />
+              <text className={`cluster-label${active ? ' is-active' : ''}`} x={c.x} y={c.y + 34}>
+                {c.label}
+              </text>
+            </g>
+          )
+        })}
 
-        {/* 노드 (미점등 소켓) */}
+        {/* 노드 */}
         <g>
           {layout.nodes.map((n) => (
-            <StarNode key={n.id} node={n} />
+            <StarNode key={n.id} node={n} tier={tiers[n.id] || 0} onClick={handleNodeClick} />
           ))}
         </g>
 
