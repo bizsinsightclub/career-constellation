@@ -96,6 +96,16 @@
 .input-panel__btn--primary:hover {
   background: var(--star-moon);
 }
+/* 해석 카드 버튼 — 금색 외곽선 강조 */
+.input-panel__btn--card {
+  color: var(--star-gilt);
+  background: color-mix(in srgb, var(--star-gilt) 14%, transparent);
+  border: 0.5px solid color-mix(in srgb, var(--star-gilt) 60%, transparent);
+}
+.input-panel__btn--card:hover {
+  color: var(--star-moon);
+  background: color-mix(in srgb, var(--star-gilt) 26%, transparent);
+}
 .input-panel__btn:disabled {
   background: var(--socket-dim);
   color: color-mix(in srgb, var(--bone) 45%, transparent);

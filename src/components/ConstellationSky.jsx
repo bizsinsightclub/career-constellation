@@ -39,9 +39,11 @@ function viewFor(bbox, fill, minS, maxS) {
   return { scale: s, tx: VBCX - s * cx, ty: VBCY - s * cy }
 }
 
-export default function ConstellationSky({ skillTiers = {}, onSkillClick, runId = 0 }) {
+export default function ConstellationSky({ skillTiers = {}, onSkillClick, runId = 0, onEngraveDone }) {
   const sky = useMemo(() => computeSky(constellation), [])
   const svgRef = useRef(null)
+  const doneRef = useRef(onEngraveDone)
+  doneRef.current = onEngraveDone
 
   const wholeView = useMemo(() => viewFor(bboxOf(sky.stars), 0.9, 0.85, 3.2), [sky])
   const initialView = useMemo(() => {
@@ -128,6 +130,7 @@ export default function ConstellationSky({ skillTiers = {}, onSkillClick, runId 
       setRevealed(null)
       setAnimating(false)
       setCam(false)
+      doneRef.current?.()
       return
     }
     if (reduceMotion()) {
@@ -135,6 +138,7 @@ export default function ConstellationSky({ skillTiers = {}, onSkillClick, runId 
       setAnimating(false)
       setCam(false)
       setView(wholeView)
+      doneRef.current?.()
       return
     }
 
@@ -181,6 +185,7 @@ export default function ConstellationSky({ skillTiers = {}, onSkillClick, runId 
       setAnimating(false)
       setCam(false)
       setRevealed(null)
+      doneRef.current?.()
     })
 
     return clearTimeline
@@ -195,6 +200,7 @@ export default function ConstellationSky({ skillTiers = {}, onSkillClick, runId 
     setAnimating(false)
     setCam(false)
     setView(wholeView)
+    doneRef.current?.()
   }, [animating, clearTimeline, wholeView])
 
   const toUser = useCallback((clientX, clientY) => {

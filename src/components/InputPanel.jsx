@@ -18,6 +18,8 @@ export default function InputPanel({
   hasKey,
   loading,
   status, // { kind: 'info'|'error'|'done', text } | null
+  hasReading,
+  onOpenReading,
   onAnalyze,
   onOpenSettings,
 }) {
@@ -67,6 +69,11 @@ export default function InputPanel({
           )}
         </span>
 
+        {hasReading && (
+          <button className="input-panel__btn input-panel__btn--card" onClick={onOpenReading}>
+            해석 카드
+          </button>
+        )}
         <button className="input-panel__btn input-panel__btn--ghost" onClick={onOpenSettings}>
           {hasKey ? '키·모델 설정' : 'API 키 등록'}
         </button>

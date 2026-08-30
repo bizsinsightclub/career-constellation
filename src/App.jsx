@@ -5,11 +5,14 @@ import CardFrame from './components/CardFrame.jsx'
 import ConstellationSky from './components/ConstellationSky.jsx'
 import ApiKeyModal from './components/ApiKeyModal.jsx'
 import InputPanel from './components/InputPanel.jsx'
+import ReadingCard from './components/ReadingCard.jsx'
 import { DEFAULT_MODEL } from './lib/models.js'
 import { generateJSON } from './lib/gemini.js'
 import { buildExtractPrompt, EXTRACT_SCHEMA } from './prompts/extract.js'
+import { buildInterpretPrompt, interpretUserText, INTERPRET_SCHEMA } from './prompts/interpret.js'
 import { scoreMatches } from './logic/scoring.js'
 import { allSkills, aggregateToSpheres, SKILL_IDS } from './logic/mapping.js'
+import { buildReading } from './logic/reading.js'
 
 /* ── localStorage 안전 접근 ─────────────────────────── */
 const LS_KEY = 'cc.apiKey'
@@ -31,14 +34,12 @@ function lsSet(k, v) {
 
 /*
  * 점등 상태 리듀서 — 스킬(세부별) 단위.
- *   tiers:    { [skillId]: 1|2|3 }
- *   evidence: { [skillId]: string[] }
  */
 function illuminationReducer(state, action) {
   switch (action.type) {
     case 'CYCLE': {
       const cur = state.tiers[action.id] || 0
-      const next = (cur + 1) % 4 // 수동/개발용
+      const next = (cur + 1) % 4
       const tiers = { ...state.tiers }
       const evidence = { ...state.evidence }
       if (next === 0) delete tiers[action.id]
@@ -70,12 +71,16 @@ export default function App() {
   const [modalOpen, setModalOpen] = useState(() => !lsGet(LS_KEY))
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState(null)
-  const [runId, setRunId] = useState(0) // 분석 성공 시마다 증가 → 각인 애니메이션 트리거
+  const [runId, setRunId] = useState(0)
+  const [reading, setReading] = useState(null)
+  const [cardOpen, setCardOpen] = useState(false)
 
   const cycleSkill = useCallback((id) => dispatch({ type: 'CYCLE', id }), [])
   const reset = useCallback(() => {
     dispatch({ type: 'RESET' })
     setStatus(null)
+    setReading(null)
+    setCardOpen(false)
   }, [])
   const litCount = Object.keys(state.tiers).length
 
@@ -87,8 +92,41 @@ export default function App() {
     setModalOpen(false)
   }, [])
 
-  // [DEV 전용] 구독제 claude로 테스트 (localStorage cc.devllm='1'). 프로덕션 빌드에선 DCE로 제거됨.
+  // [DEV 전용] 구독제 claude로 테스트. 프로덕션 빌드에선 DCE로 제거됨.
   const devMode = import.meta.env.DEV && lsGet('cc.devllm') === '1'
+
+  // LLM 호출 (dev=구독제 claude / prod=사용자 Gemini 키) 공통
+  const runLLM = useCallback(
+    async (systemInstruction, userText, schema) => {
+      if (devMode) {
+        const r = await fetch('/__llm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ system: systemInstruction, user: userText }),
+        })
+        const d = await r.json()
+        if (d.error) throw new Error(d.error)
+        const c = String(d.text || '').replace(/```json/gi, '').replace(/```/g, '').trim()
+        return JSON.parse(c.slice(c.indexOf('{'), c.lastIndexOf('}') + 1))
+      }
+      return generateJSON({ apiKey, model, systemInstruction, userText, responseSchema: schema })
+    },
+    [apiKey, model, devMode],
+  )
+
+  // 해석 개인화(LLM #2) — 프리셋 위에 문단 덧붙임. 실패해도 프리셋만으로 완결.
+  const personalize = useCallback(
+    async (presetReading) => {
+      try {
+        const json = await runLLM(buildInterpretPrompt(), interpretUserText(presetReading), INTERPRET_SCHEMA)
+        const text = (json.reading || json.text || '').trim()
+        setReading((r) => (r ? { ...r, personal: text, personalLoading: false } : r))
+      } catch {
+        setReading((r) => (r ? { ...r, personalLoading: false } : r))
+      }
+    },
+    [runLLM],
+  )
 
   const analyze = useCallback(
     async (text) => {
@@ -98,28 +136,10 @@ export default function App() {
       }
       setLoading(true)
       setStatus(null)
+      setReading(null)
+      setCardOpen(false)
       try {
-        const systemInstruction = buildExtractPrompt(allSkills())
-        let json
-        if (devMode) {
-          const r = await fetch('/__llm', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ system: systemInstruction, user: text }),
-          })
-          const d = await r.json()
-          if (d.error) throw new Error(d.error)
-          const c = String(d.text || '').replace(/```json/gi, '').replace(/```/g, '').trim()
-          json = JSON.parse(c.slice(c.indexOf('{'), c.lastIndexOf('}') + 1))
-        } else {
-          json = await generateJSON({
-            apiKey,
-            model,
-            systemInstruction,
-            userText: text,
-            responseSchema: EXTRACT_SCHEMA,
-          })
-        }
+        const json = await runLLM(buildExtractPrompt(allSkills()), text, EXTRACT_SCHEMA)
         const matches = Array.isArray(json) ? json : json.matches || json.nodes || json.results || []
         const scored = scoreMatches(matches).filter((s) => SKILL_IDS.has(s.id))
         const domainAgg = aggregateToSpheres(scored)
@@ -127,7 +147,11 @@ export default function App() {
           setStatus({ kind: 'info', text: '관련된 별을 찾지 못했습니다. 조금 더 구체적으로 들려주세요.' })
         } else {
           dispatch({ type: 'SET_RESULT', scored })
-          setRunId((n) => n + 1) // 각인 애니메이션 시작
+          setRunId((n) => n + 1)
+          // 프리셋 해석 즉시 조립 + LLM 개인화 비동기
+          const preset = buildReading(domainAgg.spheres)
+          setReading({ ...preset, personal: null, personalLoading: true })
+          personalize(preset)
           setStatus({
             kind: 'done',
             text: `${scored.length}개의 별이 깃들어 ${domainAgg.spheres.length}개 영역이 빛납니다.`,
@@ -139,8 +163,16 @@ export default function App() {
         setLoading(false)
       }
     },
-    [apiKey, model, devMode],
+    [apiKey, model, devMode, runLLM, personalize],
   )
+
+  // 각인 애니메이션이 끝나면 카드를 펼친다
+  const onEngraveDone = useCallback(() => {
+    setReading((r) => {
+      if (r) setCardOpen(true)
+      return r
+    })
+  }, [])
 
   return (
     <div className="app-root">
@@ -149,7 +181,12 @@ export default function App() {
       <div className="bg-noise" aria-hidden="true" />
       <StarfieldBackground />
 
-      <ConstellationSky skillTiers={state.tiers} onSkillClick={cycleSkill} runId={runId} />
+      <ConstellationSky
+        skillTiers={state.tiers}
+        onSkillClick={cycleSkill}
+        runId={runId}
+        onEngraveDone={onEngraveDone}
+      />
 
       <CardFrame />
 
@@ -168,9 +205,21 @@ export default function App() {
         hasKey={!!apiKey || devMode}
         loading={loading}
         status={status}
+        hasReading={!!reading}
+        onOpenReading={() => setCardOpen(true)}
         onAnalyze={analyze}
         onOpenSettings={() => setModalOpen(true)}
       />
+
+      {cardOpen && reading && (
+        <ReadingCard
+          reading={reading}
+          personal={reading.personal}
+          personalLoading={reading.personalLoading}
+          onClose={() => setCardOpen(false)}
+          onPickNext={() => setCardOpen(false)}
+        />
+      )}
 
       {modalOpen && (
         <ApiKeyModal
