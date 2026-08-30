@@ -70,6 +70,7 @@ export default function App() {
   const [modalOpen, setModalOpen] = useState(() => !lsGet(LS_KEY))
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState(null)
+  const [runId, setRunId] = useState(0) // 분석 성공 시마다 증가 → 각인 애니메이션 트리거
 
   const cycleSkill = useCallback((id) => dispatch({ type: 'CYCLE', id }), [])
   const reset = useCallback(() => {
@@ -126,6 +127,7 @@ export default function App() {
           setStatus({ kind: 'info', text: '관련된 별을 찾지 못했습니다. 조금 더 구체적으로 들려주세요.' })
         } else {
           dispatch({ type: 'SET_RESULT', scored })
+          setRunId((n) => n + 1) // 각인 애니메이션 시작
           setStatus({
             kind: 'done',
             text: `${scored.length}개의 별이 깃들어 ${domainAgg.spheres.length}개 영역이 빛납니다.`,
@@ -147,7 +149,7 @@ export default function App() {
       <div className="bg-noise" aria-hidden="true" />
       <StarfieldBackground />
 
-      <ConstellationSky skillTiers={state.tiers} onSkillClick={cycleSkill} />
+      <ConstellationSky skillTiers={state.tiers} onSkillClick={cycleSkill} runId={runId} />
 
       <CardFrame />
 

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useCallback } from 'react'
+import { useMemo, useRef, useState, useCallback, useEffect } from 'react'
 import './ConstellationSky.css'
 import { computeSky } from '../logic/skyLayout.js'
 import constellation from '../../data/constellation.json'
@@ -6,54 +6,182 @@ import EdgeLine from './EdgeLine.jsx'
 import SkillStar from './SkillStar.jsx'
 import ClusterSymbol from './ClusterSymbol.jsx'
 
-// 넓은 밤하늘 viewBox (가로형). 세로로 여유를 둬 상단 표제·하단 입력 패널과 겹치지 않게.
 const VBW = 1420
 const VBH = 1360
 const VBX = -VBW / 2
 const VBY = -660
+const VBCX = VBX + VBW / 2 // 0
+const VBCY = VBY + VBH / 2 // 20
 
-export default function ConstellationSky({ skillTiers = {}, onSkillClick }) {
+function isMobile() {
+  return typeof window !== 'undefined' && window.innerWidth < 640
+}
+function reduceMotion() {
+  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+}
+
+// 별 목록의 bounding box
+function bboxOf(list) {
+  const xs = list.map((s) => s.x)
+  const ys = list.map((s) => s.y)
+  const minX = Math.min(...xs), maxX = Math.max(...xs)
+  const minY = Math.min(...ys), maxY = Math.max(...ys)
+  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY }
+}
+// bbox를 화면에 담는 view{scale,tx,ty}
+function viewFor(bbox, fill, minS, maxS) {
+  const w = Math.max(bbox.w, 120)
+  const h = Math.max(bbox.h, 120)
+  let s = Math.min((VBW * fill) / w, (VBH * fill) / h)
+  s = Math.min(maxS, Math.max(minS, s))
+  const cx = bbox.x + bbox.w / 2
+  const cy = bbox.y + bbox.h / 2
+  return { scale: s, tx: VBCX - s * cx, ty: VBCY - s * cy }
+}
+
+export default function ConstellationSky({ skillTiers = {}, onSkillClick, runId = 0 }) {
   const sky = useMemo(() => computeSky(constellation), [])
   const svgRef = useRef(null)
-  // 모바일은 가독성을 위해 '현재의 나' 중심으로 확대해 시작 (핀치로 탐색)
-  const [view, setView] = useState(() => {
-    const mobile = typeof window !== 'undefined' && window.innerWidth < 640
-    if (!mobile) return { scale: 1, tx: 0, ty: 0 }
-    const s = 2.4
-    const P = { x: 20, y: 70 } // 현재의 나 근처
-    const T = { x: 0, y: 20 } // viewBox 중심(user 좌표)
-    return { scale: s, tx: T.x - s * P.x, ty: T.y - s * P.y }
-  })
-  const [panning, setPanning] = useState(false)
-  const pointers = useRef(new Map()) // pointerId → user좌표
-  const pinch = useRef(null) // {dist, mid}
-  const moved = useRef(false)
 
-  // 영역별 tier (그 영역 스킬들의 최고 tier)
+  const wholeView = useMemo(() => viewFor(bboxOf(sky.stars), 0.9, 0.85, 3.2), [sky])
+  const initialView = useMemo(() => {
+    if (!isMobile()) return { scale: 1, tx: 0, ty: 0 }
+    const s = 2.2
+    return { scale: s, tx: VBCX - s * 20, ty: VBCY - s * 70 }
+  }, [])
+
+  const [view, setView] = useState(initialView)
+  const [panning, setPanning] = useState(false)
+  const [cam, setCam] = useState(false) // 카메라 부드러운 전환(애니메이션 중만)
+  const [animating, setAnimating] = useState(false)
+  const [revealed, setRevealed] = useState(null) // Set<skillId> | null(=전체 공개)
+  const pointers = useRef(new Map())
+  const pinch = useRef(null)
+  const moved = useRef(false)
+  const timeline = useRef([])
+
+  const clearTimeline = useCallback(() => {
+    timeline.current.forEach(clearTimeout)
+    timeline.current = []
+  }, [])
+
+  // 세부별의 '보이는' tier (애니메이션 중 아직 공개 전이면 0)
+  const effSkillTier = useCallback(
+    (id) => {
+      const t = skillTiers[id] || 0
+      if (t === 0) return 0
+      if (revealed && !revealed.has(id)) return 0
+      return t
+    },
+    [skillTiers, revealed],
+  )
+
   const domainTier = useMemo(() => {
     const map = {}
-    sky.domains.forEach((d) => {
-      let t = 0
-      d.skills.forEach((k) => {
-        if ((skillTiers[k.id] || 0) > t) t = skillTiers[k.id]
-      })
-      map[d.id] = t
+    sky.stars.forEach((s) => {
+      if (s.kind !== 'skill') return
+      const t = effSkillTier(s.id)
+      if (t > (map[s.domain] || 0)) map[s.domain] = t
     })
     return map
-  }, [skillTiers, sky])
+  }, [sky, effSkillTier])
 
-  const domainIds = useMemo(() => new Set(sky.domains.map((d) => d.id)), [sky])
+  const starById = useMemo(() => {
+    const m = new Map()
+    sky.stars.forEach((s) => m.set(s.id, s))
+    return m
+  }, [sky])
 
   const isLit = useCallback(
     (id) => {
-      if (id === sky.center.id) return true
-      if (domainIds.has(id)) return (domainTier[id] || 0) > 0
-      return (skillTiers[id] || 0) > 0
+      const s = starById.get(id)
+      if (!s) return false
+      if (s.kind === 'self') return true
+      if (s.kind === 'notable') return (domainTier[id] || 0) > 0
+      return effSkillTier(id) > 0
     },
-    [sky.center.id, domainIds, domainTier, skillTiers],
+    [starById, domainTier, effSkillTier],
   )
 
-  // client px → viewBox user 좌표 (그룹 transform 이전 공간)
+  // ── 각인 애니메이션 (분석 결과가 들어올 때) ──
+  useEffect(() => {
+    if (runId === 0) return
+    clearTimeline()
+    const litSkills = sky.stars.filter((s) => s.kind === 'skill' && (skillTiers[s.id] || 0) > 0)
+    const allLit = new Set(litSkills.map((s) => s.id))
+    if (litSkills.length === 0) {
+      setRevealed(null)
+      setAnimating(false)
+      setCam(false)
+      return
+    }
+    if (reduceMotion()) {
+      setRevealed(null)
+      setAnimating(false)
+      setCam(false)
+      setView(wholeView)
+      return
+    }
+
+    // 점등 영역을 order 순으로
+    const orderOf = {}
+    const notableOf = {}
+    sky.stars.forEach((s) => {
+      if (s.kind !== 'skill') {
+        orderOf[s.domain] = s.order
+        notableOf[s.domain] = s
+      }
+    })
+    const litDomains = [...new Set(litSkills.map((s) => s.domain))].sort(
+      (a, b) => (orderOf[a] ?? 0) - (orderOf[b] ?? 0),
+    )
+
+    setAnimating(true)
+    setCam(true)
+    const shown = new Set()
+    setRevealed(new Set())
+    const push = (delay, fn) => timeline.current.push(setTimeout(fn, delay))
+
+    let t = 200
+    litDomains.forEach((dom) => {
+      const domLit = litSkills.filter((s) => s.domain === dom)
+      const frame = [notableOf[dom], ...domLit].filter(Boolean)
+      // 카메라를 이 영역으로 줌인
+      push(t, () => setView(viewFor(bboxOf(frame), 0.42, 1.6, 3.0)))
+      // 카메라 안정 후 별을 하나씩 점등
+      let dt = t + 850
+      domLit.forEach((s) => {
+        push(dt, () => {
+          shown.add(s.id)
+          setRevealed(new Set(shown))
+        })
+        dt += 380
+      })
+      t = dt + 350
+    })
+    // 마무리: 전체 줌아웃
+    push(t, () => setView(wholeView))
+    push(t + 250, () => setRevealed(new Set(allLit)))
+    push(t + 1150, () => {
+      setAnimating(false)
+      setCam(false)
+      setRevealed(null)
+    })
+
+    return clearTimeline
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runId])
+
+  // 애니메이션 건너뛰기 (탭/드래그 시작 시)
+  const skipAnim = useCallback(() => {
+    if (!animating) return
+    clearTimeline()
+    setRevealed(null)
+    setAnimating(false)
+    setCam(false)
+    setView(wholeView)
+  }, [animating, clearTimeline, wholeView])
+
   const toUser = useCallback((clientX, clientY) => {
     const svg = svgRef.current
     const pt = svg.createSVGPoint()
@@ -66,7 +194,7 @@ export default function ConstellationSky({ skillTiers = {}, onSkillClick }) {
   const applyZoom = useCallback((f, focusUser) => {
     setView((v) => {
       const scale = Math.min(5, Math.max(0.4, v.scale * f))
-      const real = scale / v.scale // 클램프 반영된 실제 배율
+      const real = scale / v.scale
       return {
         scale,
         tx: focusUser.x * (1 - real) + v.tx * real,
@@ -77,14 +205,18 @@ export default function ConstellationSky({ skillTiers = {}, onSkillClick }) {
 
   const onWheel = useCallback(
     (e) => {
-      const f = e.deltaY < 0 ? 1.12 : 1 / 1.12
-      applyZoom(f, toUser(e.clientX, e.clientY))
+      skipAnim()
+      applyZoom(e.deltaY < 0 ? 1.12 : 1 / 1.12, toUser(e.clientX, e.clientY))
     },
-    [applyZoom, toUser],
+    [applyZoom, toUser, skipAnim],
   )
 
   const onPointerDown = useCallback(
     (e) => {
+      if (animating) {
+        skipAnim()
+        return
+      }
       pointers.current.set(e.pointerId, toUser(e.clientX, e.clientY))
       moved.current = false
       setPanning(true)
@@ -93,7 +225,7 @@ export default function ConstellationSky({ skillTiers = {}, onSkillClick }) {
         pinch.current = { dist: Math.hypot(a.x - b.x, a.y - b.y) }
       }
     },
-    [toUser],
+    [toUser, animating, skipAnim],
   )
 
   const onPointerMove = useCallback(
@@ -102,9 +234,7 @@ export default function ConstellationSky({ skillTiers = {}, onSkillClick }) {
       const prev = pointers.current.get(e.pointerId)
       const now = toUser(e.clientX, e.clientY)
       pointers.current.set(e.pointerId, now)
-
       if (pointers.current.size >= 2) {
-        // 핀치 줌
         const [a, b] = [...pointers.current.values()]
         const dist = Math.hypot(a.x - b.x, a.y - b.y)
         const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
@@ -112,7 +242,6 @@ export default function ConstellationSky({ skillTiers = {}, onSkillClick }) {
         pinch.current = { dist }
         moved.current = true
       } else {
-        // 한 손가락/마우스 이동
         const dx = now.x - prev.x
         const dy = now.y - prev.y
         if (Math.abs(dx) + Math.abs(dy) > 2) moved.current = true
@@ -130,10 +259,10 @@ export default function ConstellationSky({ skillTiers = {}, onSkillClick }) {
 
   const handleSkillClick = useCallback(
     (id) => {
-      if (moved.current) return
+      if (moved.current || animating) return
       onSkillClick?.(id)
     },
-    [onSkillClick],
+    [onSkillClick, animating],
   )
 
   return (
@@ -151,7 +280,10 @@ export default function ConstellationSky({ skillTiers = {}, onSkillClick }) {
       role="img"
       aria-label="커리어 별자리"
     >
-      <g transform={`translate(${view.tx} ${view.ty}) scale(${view.scale})`}>
+      <g
+        className={cam ? 'sky-cam' : undefined}
+        transform={`translate(${view.tx} ${view.ty}) scale(${view.scale})`}
+      >
         {/* 별자리 선 */}
         <g>
           {sky.lines.map((l, i) => (
@@ -161,39 +293,30 @@ export default function ConstellationSky({ skillTiers = {}, onSkillClick }) {
 
         {/* 세부 스킬 잔별 */}
         <g>
-          {sky.domains.map((d) =>
-            d.skills.map((k) => (
-              <SkillStar key={k.id} skill={k} tier={skillTiers[k.id] || 0} onClick={handleSkillClick} />
-            )),
-          )}
+          {sky.stars
+            .filter((s) => s.kind === 'skill')
+            .map((k) => (
+              <SkillStar key={k.id} skill={k} tier={effSkillTier(k.id)} onClick={handleSkillClick} />
+            ))}
         </g>
 
-        {/* 영역 대표별 */}
-        {sky.domains.map((d) => {
-          const t = domainTier[d.id] || 0
-          return (
-            <g
-              key={d.id}
-              className={`notable ${t > 0 ? `notable--t${t}` : 'notable--dim'}`}
-              transform={`translate(${d.x} ${d.y})`}
-            >
-              <circle className="notable__disc" r="11" />
-              <ClusterSymbol name={d.symbol} cx={0} cy={0} size={20} />
-              <text className="notable__label" y="27">
-                {d.ko}
-              </text>
-            </g>
-          )
-        })}
-
-        {/* 중앙 — 현재의 나 */}
-        <g className="notable notable--self" transform={`translate(${sky.center.x} ${sky.center.y})`}>
-          <circle className="notable__disc" r="13" />
-          <ClusterSymbol name={sky.center.symbol} cx={0} cy={0} size={22} />
-          <text className="notable__label" y="30">
-            현재의 나
-          </text>
-        </g>
+        {/* 영역 대표별 + 현재의 나 */}
+        {sky.stars
+          .filter((s) => s.kind !== 'skill')
+          .map((s) => {
+            const self = s.kind === 'self'
+            const t = self ? 4 : domainTier[s.id] || 0
+            const cls = self ? 'notable notable--self' : `notable ${t > 0 ? `notable--t${t}` : 'notable--dim'}`
+            return (
+              <g key={s.id} className={cls} transform={`translate(${s.x} ${s.y})`}>
+                <circle className="notable__disc" r={self ? 14 : 12} />
+                <ClusterSymbol name={s.symbol} cx={0} cy={0} size={self ? 24 : 21} />
+                <text className="notable__label" y={self ? 31 : 28}>
+                  {s.ko}
+                </text>
+              </g>
+            )
+          })}
       </g>
     </svg>
   )

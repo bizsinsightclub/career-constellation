@@ -4,7 +4,7 @@
  * 점등(tier 1~3): 촛불/금박/달빛으로 발광, 크기도 커짐.
  */
 const TIER_NAME = ['', '촛불', '금박', '달빛']
-const R = [1.6, 3, 4, 5.2]
+const R = [2, 4.6, 6.2, 8]
 
 export default function SkillStar({ skill, tier = 0, onClick }) {
   const { x, y, label } = skill
@@ -16,10 +16,16 @@ export default function SkillStar({ skill, tier = 0, onClick }) {
       transform={`translate(${x} ${y})`}
       onClick={onClick ? () => onClick(skill.id) : undefined}
     >
+      {tier >= 2 && (
+        <>
+          <line className="skillstar__ray" x1={-R[tier] - 5} y1="0" x2={R[tier] + 5} y2="0" />
+          <line className="skillstar__ray" x1="0" y1={-R[tier] - 5} x2="0" y2={R[tier] + 5} />
+        </>
+      )}
       {tier === 3 && (
         <>
-          <line className="skillstar__ray" x1="-8" y1="0" x2="8" y2="0" />
-          <line className="skillstar__ray" x1="0" y1="-8" x2="0" y2="8" />
+          <line className="skillstar__ray" x1={-R[tier] - 2} y1={-R[tier] - 2} x2={R[tier] + 2} y2={R[tier] + 2} />
+          <line className="skillstar__ray" x1={-R[tier] - 2} y1={R[tier] + 2} x2={R[tier] + 2} y2={-R[tier] - 2} />
         </>
       )}
       <circle className="skillstar__core" r={R[tier]} />
