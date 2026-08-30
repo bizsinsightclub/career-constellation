@@ -31,14 +31,19 @@
   stroke-width: 0.6;
   opacity: 0.22;
 }
+/* 배경 격자는 아주 옅게 */
+.sky-lattice .edge {
+  opacity: 0.08;
+  stroke-width: 0.5;
+}
 .edge--lit {
   stroke: var(--lunar);
-  stroke-width: 1;
-  opacity: 0.85;
-  stroke-dasharray: 1;
+  stroke-width: 1.5;
+  opacity: 0.95;
+  stroke-dasharray: 1; /* pathLength=1 기준 */
   stroke-dashoffset: 0;
-  filter: drop-shadow(0 0 3px rgba(185, 191, 221, 0.7));
-  animation: edge-draw 0.8s ease-out;
+  filter: drop-shadow(0 0 4px rgba(185, 191, 221, 0.85)) drop-shadow(0 0 10px rgba(185, 191, 221, 0.5));
+  animation: edge-draw 0.7s ease-out;
 }
 @keyframes edge-draw {
   from { stroke-dashoffset: 1; }

@@ -30,6 +30,39 @@ function hash01(str) {
   return (h >>> 0) % 1000 / 1000
 }
 
+/*
+ * 가중 최소신장트리 — 같은 영역 연결을 싸게(우선) 해서 자연스러운 별자리 도형.
+ * stars: [{id, x, y, domain}] → edges: [{x1,y1,x2,y2,a,b}]
+ * 켜진 별들만 넘기면 "그 별들만의 별자리"를 만들 수 있다.
+ */
+export function weightedMst(stars, cross = CROSS_PENALTY) {
+  const n = stars.length
+  if (n < 2) return []
+  const inTree = new Array(n).fill(false)
+  inTree[0] = true
+  const edges = []
+  const w = (i, j) => {
+    const d = Math.hypot(stars[i].x - stars[j].x, stars[i].y - stars[j].y)
+    return stars[i].domain === stars[j].domain ? d : d * cross
+  }
+  for (let k = 0; k < n - 1; k++) {
+    let best = null
+    for (let i = 0; i < n; i++) {
+      if (!inTree[i]) continue
+      for (let j = 0; j < n; j++) {
+        if (inTree[j]) continue
+        const c = w(i, j)
+        if (!best || c < best.c) best = { i, j, c }
+      }
+    }
+    inTree[best.j] = true
+    const A = stars[best.i]
+    const B = stars[best.j]
+    edges.push({ x1: A.x, y1: A.y, x2: B.x, y2: B.y, a: A.id, b: B.id })
+  }
+  return edges
+}
+
 export function computeSky(data) {
   const spheres = data.spheres
   const centerSphere = spheres.find((s) => s.alwaysLit) || spheres[spheres.length - 1]
@@ -64,30 +97,8 @@ export function computeSky(data) {
     })
   })
 
-  // 가중 MST (같은 영역 저렴, 다른 영역 비쌈) — 모든 별을 하나의 별자리로
-  const n = stars.length
-  const inTree = new Array(n).fill(false)
-  inTree[0] = true
-  const lines = []
-  const w = (i, j) => {
-    const d = Math.hypot(stars[i].x - stars[j].x, stars[i].y - stars[j].y)
-    return stars[i].domain === stars[j].domain ? d : d * CROSS_PENALTY
-  }
-  for (let k = 0; k < n - 1; k++) {
-    let best = null
-    for (let i = 0; i < n; i++) {
-      if (!inTree[i]) continue
-      for (let j = 0; j < n; j++) {
-        if (inTree[j]) continue
-        const cost = w(i, j)
-        if (!best || cost < best.cost) best = { i, j, cost }
-      }
-    }
-    inTree[best.j] = true
-    const A = stars[best.i]
-    const B = stars[best.j]
-    lines.push({ x1: A.x, y1: A.y, x2: B.x, y2: B.y, a: A.id, b: B.id })
-  }
+  // 배경 격자(전체 별의 MST) — 아주 옅게 깔리는 "아직 읽히지 않은 하늘"
+  const lines = weightedMst(stars)
 
   return { stars, lines }
 }

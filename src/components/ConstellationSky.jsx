@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState, useCallback, useEffect } from 'react'
+import { useMemo, useRef, useState, useCallback, useLayoutEffect } from 'react'
 import './ConstellationSky.css'
-import { computeSky } from '../logic/skyLayout.js'
+import { computeSky, weightedMst } from '../logic/skyLayout.js'
 import constellation from '../../data/constellation.json'
 import EdgeLine from './EdgeLine.jsx'
 import SkillStar from './SkillStar.jsx'
@@ -103,8 +103,23 @@ export default function ConstellationSky({ skillTiers = {}, onSkillClick, runId 
     [starById, domainTier, effSkillTier],
   )
 
+  // 최종적으로 켜질 별들의 별자리 선을 '미리' 한 번 계산(토폴로지 고정 → 애니 중 튐 없음).
+  const finalMst = useMemo(() => {
+    const finalLit = (s) => {
+      if (s.kind === 'self') return true
+      if (s.kind === 'skill') return (skillTiers[s.id] || 0) > 0
+      return sky.stars.some((k) => k.kind === 'skill' && k.domain === s.id && (skillTiers[k.id] || 0) > 0)
+    }
+    const stars = sky.stars.filter(finalLit).map((s) => ({ id: s.id, x: s.x, y: s.y, domain: s.domain }))
+    return weightedMst(stars)
+  }, [sky, skillTiers])
+
+  // 공개된(현재 켜진) 양끝의 선만 밝게 표시 → 공개될수록 선이 자라남
+  const litLines = useMemo(() => finalMst.filter((l) => isLit(l.a) && isLit(l.b)), [finalMst, isLit])
+
   // ── 각인 애니메이션 (분석 결과가 들어올 때) ──
-  useEffect(() => {
+  // useLayoutEffect: 결과가 그려지기 '전에' revealed를 비워, 전체가 한 번 깜빡이는 것 방지
+  useLayoutEffect(() => {
     if (runId === 0) return
     clearTimeline()
     const litSkills = sky.stars.filter((s) => s.kind === 'skill' && (skillTiers[s.id] || 0) > 0)
@@ -147,7 +162,7 @@ export default function ConstellationSky({ skillTiers = {}, onSkillClick, runId 
       const domLit = litSkills.filter((s) => s.domain === dom)
       const frame = [notableOf[dom], ...domLit].filter(Boolean)
       // 카메라를 이 영역으로 줌인
-      push(t, () => setView(viewFor(bboxOf(frame), 0.42, 1.6, 3.0)))
+      push(t, () => setView(viewFor(bboxOf(frame), 0.5, 1.5, 2.4)))
       // 카메라 안정 후 별을 하나씩 점등
       let dt = t + 850
       domLit.forEach((s) => {
@@ -284,10 +299,17 @@ export default function ConstellationSky({ skillTiers = {}, onSkillClick, runId 
         className={cam ? 'sky-cam' : undefined}
         transform={`translate(${view.tx} ${view.ty}) scale(${view.scale})`}
       >
-        {/* 별자리 선 */}
-        <g>
+        {/* 배경 별자리 격자 (아주 옅게) */}
+        <g className="sky-lattice">
           {sky.lines.map((l, i) => (
-            <EdgeLine key={i} edge={l} lit={isLit(l.a) && isLit(l.b)} />
+            <EdgeLine key={i} edge={l} />
+          ))}
+        </g>
+
+        {/* 켜진 별들의 별자리 선 (밝게, 공개될수록 자라남) */}
+        <g>
+          {litLines.map((l) => (
+            <EdgeLine key={`${l.a}|${l.b}`} edge={l} lit />
           ))}
         </g>
 
