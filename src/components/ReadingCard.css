@@ -6,20 +6,23 @@
   z-index: 70;
   display: grid;
   place-items: center;
-  padding: 20px;
+  padding: 16px;
   background: color-mix(in srgb, var(--void) 82%, transparent);
   backdrop-filter: blur(3px);
   overflow-y: auto;
+  overflow-x: hidden;
   perspective: 1600px;
 }
 
 .reading-card {
   position: relative;
   box-sizing: border-box;
-  width: min(440px, 100%);
-  max-height: calc(100vh - 40px);
+  width: min(440px, calc(100vw - 24px));
+  max-width: 100%;
+  max-height: calc(100dvh - 32px);
   overflow-y: auto;
-  padding: 34px 30px 30px;
+  overflow-x: hidden;
+  padding: 34px 26px 30px;
   background:
     radial-gradient(120% 60% at 50% 0%, color-mix(in srgb, var(--veil) 90%, var(--star-gilt)) 0%, var(--veil) 45%),
     linear-gradient(180deg, var(--veil), color-mix(in srgb, var(--veil) 55%, var(--void)));
@@ -47,18 +50,24 @@
   .reading-card { animation: none; }
 }
 
+/* 스크롤해도 항상 닿도록 카드 상단에 고정(sticky) */
 .reading__close {
-  position: absolute;
-  top: 10px;
-  right: 12px;
-  z-index: 2;
-  background: none;
-  border: none;
-  color: color-mix(in srgb, var(--bone) 60%, transparent);
-  font-size: 16px;
+  position: sticky;
+  top: -6px;
+  float: right;
+  margin: -6px 0 -30px 6px;
+  z-index: 6;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--veil) 92%, transparent);
+  border: 0.5px solid color-mix(in srgb, var(--star-gilt) 35%, transparent);
+  color: color-mix(in srgb, var(--bone) 75%, transparent);
+  font-size: 15px;
   cursor: pointer;
   line-height: 1;
-  padding: 4px;
 }
 .reading__close:hover { color: var(--star-gilt); }
 
@@ -169,9 +178,9 @@
   border-radius: 8px;
   color: var(--void);
 }
-.reading__tier--1 { background: var(--star-candle); }
-.reading__tier--2 { background: var(--star-gilt); }
-.reading__tier--3 { background: var(--star-moon); }
+.reading__tier--1 { background: var(--tier1); }
+.reading__tier--2 { background: var(--tier2); }
+.reading__tier--3 { background: var(--tier3); }
 .reading__strength-line {
   font-family: var(--font-body);
   font-size: 13px;
@@ -232,8 +241,6 @@
 
 @media (max-width: 480px) {
   .reading-card {
-    width: 100%;
-    max-height: calc(100vh - 24px);
-    padding: 30px 22px 26px;
+    padding: 30px 18px 26px;
   }
 }

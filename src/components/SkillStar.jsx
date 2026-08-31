@@ -3,7 +3,7 @@
  * 미점등: 아주 작은 희미한 별
  * 점등(tier 1~3): 촛불/금박/달빛으로 발광 + 입력에서 뽑은 '그 사람만의 별 이름' 라벨 표시.
  */
-const TIER_NAME = ['', '촛불', '금박', '달빛']
+const TIER_NAME = ['', 'Silver', 'Diamond', 'Gold']
 const R = [2, 4.6, 6.2, 8]
 
 export default function SkillStar({ skill, tier = 0, customLabel, onClick }) {

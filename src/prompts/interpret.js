@@ -32,7 +32,7 @@ export const INTERPRET_SCHEMA = {
   required: ['reading'],
 }
 
-const TIER_NAME = ['', '촛불', '금박', '달빛']
+const TIER_NAME = ['', 'Silver', 'Diamond', 'Gold']
 
 export function interpretUserText(reading) {
   const strengths = reading.strengths

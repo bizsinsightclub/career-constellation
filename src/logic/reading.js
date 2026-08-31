@@ -8,7 +8,7 @@ import { ARCANA, ARCANA_FALLBACK, DOMAIN_STRENGTH, DOMAIN_DARK, verdictOf } from
 const KO = {}
 constellation.spheres.forEach((s) => (KO[s.id] = s.ko))
 const ALL_DOMAINS = constellation.spheres.filter((s) => !s.alwaysLit).map((s) => s.id)
-const TIER_NAME = ['', '촛불', '금박', '달빛']
+const TIER_NAME = ['', 'Silver', 'Diamond', 'Gold']
 
 // domains: [{id, tier, score, matched:[{label, evidence}]}]
 export function buildReading(domains) {
