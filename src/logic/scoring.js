@@ -16,6 +16,7 @@ export function scoreMatch(m) {
     id: m.id,
     score,
     tier,
+    label: typeof m.label === 'string' ? m.label.trim() : '',
     evidence: Array.isArray(m.evidence) ? m.evidence : [],
   }
 }

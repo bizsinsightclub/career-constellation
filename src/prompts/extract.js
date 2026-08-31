@@ -16,6 +16,7 @@ export function buildExtractPrompt(nodes) {
 - 반드시 아래 목록에 존재하는 id만 사용하세요. 목록에 없는 id를 만들지 마세요.
 - 입력에 실제 근거가 있는 노드만 포함하세요. 추측하거나 없는 경력을 지어내지 마세요.
 - evidence 에는 입력에서 그대로 발췌한 근거 문구(짧게)를 담으세요.
+- label 에는 이 항목에 해당하는 '그대의 구체적 경험'을 입력에서 뽑아 2~6단어의 짧은 명사구로 요약하세요. 그 사람만의 별 이름이 됩니다. (예: "FastAPI 자동화 도입", "아크로 브랜드 리뉴얼", "8년 전략기획"). 입력에 근거가 있을 때만 쓰고, 없으면 비워 두세요.
 - mentions 는 해당 역량이 드러난 횟수(정수, 최소 1)입니다.
 - yearsMentioned: 구체적인 연차·기간(예: "8년", "3년간")이 명시되면 true.
 - quantifiedResult: 정량적 성과·수치·수상(예: "매출 30% 증가", "대상 수상")이 있으면 true.
@@ -24,7 +25,7 @@ export function buildExtractPrompt(nodes) {
 - 반드시 아래 형식의 JSON으로만 답하세요. 최상위 키는 정확히 "matches" 여야 합니다. JSON 외의 어떤 텍스트도 출력하지 마세요.
 
 [출력 형식 예시]
-{"matches":[{"id":"brand-strategy","mentions":2,"yearsMentioned":true,"quantifiedResult":false,"leadershipRole":true,"evidence":["8년간 브랜드 전략 총괄"]}]}
+{"matches":[{"id":"brand-strategy","label":"아크로 브랜드 리뉴얼","mentions":2,"yearsMentioned":true,"quantifiedResult":false,"leadershipRole":true,"evidence":["8년간 브랜드 전략 총괄"]}]}
 
 [스킬 목록]
 ${list}`
@@ -40,6 +41,7 @@ export const EXTRACT_SCHEMA = {
         type: 'object',
         properties: {
           id: { type: 'string' },
+          label: { type: 'string' },
           mentions: { type: 'integer' },
           yearsMentioned: { type: 'boolean' },
           quantifiedResult: { type: 'boolean' },

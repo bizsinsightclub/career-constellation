@@ -83,6 +83,18 @@
   stroke-width: 0.5;
 }
 .skillstar--t3 { animation: star-pulse 3.4s ease-in-out infinite; }
+/* 점등된 서브별의 입력 기반 라벨 */
+.skillstar__label {
+  fill: color-mix(in srgb, var(--bone) 82%, transparent);
+  font-family: var(--font-ui);
+  font-size: 8.5px;
+  text-anchor: middle;
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: rgba(13, 10, 22, 0.85);
+  stroke-width: 2.4px;
+  stroke-linejoin: round;
+}
 /* 새로 점등될 때 팟 하고 나타나는 각인 효과 */
 .skillstar--t1 .skillstar__core,
 .skillstar--t2 .skillstar__core,

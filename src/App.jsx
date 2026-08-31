@@ -42,30 +42,34 @@ function illuminationReducer(state, action) {
       const next = (cur + 1) % 4
       const tiers = { ...state.tiers }
       const evidence = { ...state.evidence }
+      const labels = { ...state.labels }
       if (next === 0) delete tiers[action.id]
       else tiers[action.id] = next
       delete evidence[action.id]
-      return { tiers, evidence }
+      delete labels[action.id]
+      return { tiers, evidence, labels }
     }
     case 'SET_RESULT': {
       const tiers = {}
       const evidence = {}
+      const labels = {}
       action.scored.forEach((s) => {
         if (!SKILL_IDS.has(s.id)) return
         tiers[s.id] = s.tier
         evidence[s.id] = s.evidence
+        if (s.label) labels[s.id] = s.label
       })
-      return { tiers, evidence }
+      return { tiers, evidence, labels }
     }
     case 'RESET':
-      return { tiers: {}, evidence: {} }
+      return { tiers: {}, evidence: {}, labels: {} }
     default:
       return state
   }
 }
 
 export default function App() {
-  const [state, dispatch] = useReducer(illuminationReducer, { tiers: {}, evidence: {} })
+  const [state, dispatch] = useReducer(illuminationReducer, { tiers: {}, evidence: {}, labels: {} })
   const [apiKey, setApiKey] = useState(() => lsGet(LS_KEY))
   const [model, setModel] = useState(() => lsGet(LS_MODEL) || DEFAULT_MODEL)
   const [modalOpen, setModalOpen] = useState(() => !lsGet(LS_KEY))
@@ -183,6 +187,7 @@ export default function App() {
 
       <ConstellationSky
         skillTiers={state.tiers}
+        skillLabels={state.labels}
         onSkillClick={cycleSkill}
         runId={runId}
         onEngraveDone={onEngraveDone}

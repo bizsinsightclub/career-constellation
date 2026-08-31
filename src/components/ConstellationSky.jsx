@@ -39,7 +39,7 @@ function viewFor(bbox, fill, minS, maxS) {
   return { scale: s, tx: VBCX - s * cx, ty: VBCY - s * cy }
 }
 
-export default function ConstellationSky({ skillTiers = {}, onSkillClick, runId = 0, onEngraveDone }) {
+export default function ConstellationSky({ skillTiers = {}, skillLabels = {}, onSkillClick, runId = 0, onEngraveDone }) {
   const sky = useMemo(() => computeSky(constellation), [])
   const svgRef = useRef(null)
   const doneRef = useRef(onEngraveDone)
@@ -324,7 +324,13 @@ export default function ConstellationSky({ skillTiers = {}, onSkillClick, runId 
           {sky.stars
             .filter((s) => s.kind === 'skill')
             .map((k) => (
-              <SkillStar key={k.id} skill={k} tier={effSkillTier(k.id)} onClick={handleSkillClick} />
+              <SkillStar
+                key={k.id}
+                skill={k}
+                tier={effSkillTier(k.id)}
+                customLabel={skillLabels[k.id]}
+                onClick={handleSkillClick}
+              />
             ))}
         </g>
 
