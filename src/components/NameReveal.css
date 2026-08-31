@@ -1,0 +1,102 @@
+/* 별자리 이름 공개 화면 (해석 카드 이전 단계) */
+
+.namereveal__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 65;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  /* 갓 그려진 별자리가 뒤로 은은히 비치도록 옅은 배경 */
+  background: radial-gradient(
+    120% 80% at 50% 50%,
+    color-mix(in srgb, var(--void) 55%, transparent) 0%,
+    color-mix(in srgb, var(--void) 80%, transparent) 100%
+  );
+  backdrop-filter: blur(1.5px);
+  animation: namereveal-fade 0.6s ease;
+}
+@keyframes namereveal-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.namereveal {
+  text-align: center;
+  max-width: 440px;
+  animation: namereveal-rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+@keyframes namereveal-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.namereveal__eyebrow {
+  font-family: var(--font-title-latin);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  color: color-mix(in srgb, var(--star-gilt) 78%, transparent);
+  margin: 0 0 18px;
+}
+.namereveal__roman {
+  font-family: var(--font-title-latin);
+  font-weight: 700;
+  font-size: 26px;
+  letter-spacing: 0.12em;
+  color: var(--star-gilt);
+  margin: 0 0 6px;
+  text-shadow: 0 0 20px rgba(230, 190, 106, 0.4);
+}
+.namereveal__name {
+  font-family: var(--font-title-ko);
+  font-weight: 400;
+  font-size: clamp(28px, 8vw, 40px);
+  color: var(--star-moon);
+  margin: 0;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 34px rgba(230, 190, 106, 0.35);
+}
+.namereveal__en {
+  font-family: var(--font-title-latin);
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  color: color-mix(in srgb, var(--star-gilt) 72%, transparent);
+  margin: 10px 0 0;
+}
+.namereveal__tagline {
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  line-height: 1.8;
+  color: color-mix(in srgb, var(--bone) 85%, transparent);
+  margin: 14px auto 0;
+  max-width: 340px;
+}
+.namereveal__btn {
+  margin-top: 30px;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  color: var(--void);
+  background: var(--star-gilt);
+  border: none;
+  border-radius: 3px;
+  padding: 12px 30px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+.namereveal__btn:hover {
+  background: var(--star-moon);
+  transform: translateY(-1px);
+}
+
+.namereveal__loading {
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: color-mix(in srgb, var(--lunar) 82%, transparent);
+  margin: 0;
+  animation: namereveal-shimmer 2.2s ease-in-out infinite;
+}
+@keyframes namereveal-shimmer {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}

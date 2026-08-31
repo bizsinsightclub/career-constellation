@@ -6,6 +6,7 @@ import ConstellationSky from './components/ConstellationSky.jsx'
 import ApiKeyModal from './components/ApiKeyModal.jsx'
 import InputPanel from './components/InputPanel.jsx'
 import ReadingCard from './components/ReadingCard.jsx'
+import NameReveal from './components/NameReveal.jsx'
 import { DEFAULT_MODEL } from './lib/models.js'
 import { generateJSON } from './lib/gemini.js'
 import { buildExtractPrompt, EXTRACT_SCHEMA } from './prompts/extract.js'
@@ -79,14 +80,14 @@ export default function App() {
   const [runId, setRunId] = useState(0)
   const [layoutSeed, setLayoutSeed] = useState(1) // 사람마다 별자리 배치가 달라지도록
   const [reading, setReading] = useState(null)
-  const [cardOpen, setCardOpen] = useState(false)
+  const [revealStage, setRevealStage] = useState('none') // 'none' | 'name' | 'card'
 
   const cycleSkill = useCallback((id) => dispatch({ type: 'CYCLE', id }), [])
   const reset = useCallback(() => {
     dispatch({ type: 'RESET' })
     setStatus(null)
     setReading(null)
-    setCardOpen(false)
+    setRevealStage('none')
   }, [])
   const litCount = Object.keys(state.tiers).length
 
@@ -154,7 +155,7 @@ export default function App() {
       setLoading(true)
       setStatus(null)
       setReading(null)
-      setCardOpen(false)
+      setRevealStage('none')
       try {
         const json = await runLLM(buildExtractPrompt(allSkills()), text, EXTRACT_SCHEMA)
         const matches = Array.isArray(json) ? json : json.matches || json.nodes || json.results || []
@@ -184,10 +185,10 @@ export default function App() {
     [apiKey, model, devMode, runLLM, personalize],
   )
 
-  // 각인 애니메이션이 끝나면 카드를 펼친다
+  // 각인 애니메이션이 끝나면 먼저 '별자리 이름'을 공개한다 (결과 보기 → 전체 카드)
   const onEngraveDone = useCallback(() => {
     setReading((r) => {
-      if (r) setCardOpen(true)
+      if (r) setRevealStage('name')
       return r
     })
   }, [])
@@ -226,18 +227,27 @@ export default function App() {
         loading={loading}
         status={status}
         hasReading={!!reading}
-        onOpenReading={() => setCardOpen(true)}
+        onOpenReading={() => setRevealStage('card')}
         onAnalyze={analyze}
         onOpenSettings={() => setModalOpen(true)}
       />
 
-      {cardOpen && reading && (
+      {revealStage === 'name' && reading && (
+        <NameReveal
+          arcana={reading.arcana}
+          loading={reading.personalLoading}
+          onSeeResult={() => setRevealStage('card')}
+          onClose={() => setRevealStage('none')}
+        />
+      )}
+
+      {revealStage === 'card' && reading && (
         <ReadingCard
           reading={reading}
           personal={reading.personal}
           personalLoading={reading.personalLoading}
-          onClose={() => setCardOpen(false)}
-          onPickNext={() => setCardOpen(false)}
+          onClose={() => setRevealStage('none')}
+          onPickNext={() => setRevealStage('none')}
         />
       )}
 
