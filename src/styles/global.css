@@ -20,6 +20,9 @@ body {
   /* ① 기저 배경 — void */
   background-color: var(--void);
   overflow: hidden; /* 카드 한 장의 정지된 화면 */
+  /* 한글은 어절(단어) 단위로 줄바꿈해 중간에 끊겨 보이지 않게. 긴 토큰만 예외적으로 분리 */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 #root {

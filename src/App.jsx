@@ -1,4 +1,4 @@
-import { useReducer, useCallback, useState } from 'react'
+import { useReducer, useCallback, useState, useEffect } from 'react'
 import './App.css'
 import StarfieldBackground from './components/StarfieldBackground.jsx'
 import CardFrame from './components/CardFrame.jsx'
@@ -15,6 +15,7 @@ import { scoreMatches } from './logic/scoring.js'
 import { allSkills, aggregateToSpheres, SKILL_IDS } from './logic/mapping.js'
 import { buildReading } from './logic/reading.js'
 import { seedFromString } from './logic/skyLayout.js'
+import { encodeResult, decodeResult } from './lib/share.js'
 
 /* ── localStorage 안전 접근 ─────────────────────────── */
 const LS_KEY = 'cc.apiKey'
@@ -63,6 +64,8 @@ function illuminationReducer(state, action) {
       })
       return { tiers, evidence, labels }
     }
+    case 'SET_SHARED':
+      return { tiers: action.tiers || {}, evidence: {}, labels: action.labels || {} }
     case 'RESET':
       return { tiers: {}, evidence: {}, labels: {} }
     default:
@@ -70,13 +73,27 @@ function illuminationReducer(state, action) {
   }
 }
 
+// 공유 링크로 열 때: 저장된 tier/label로 해석(프리셋)을 재구성 (아르카나·개인화 문단은 저장값으로 덮어씀)
+function readingFromTiers(tiers, labels) {
+  const scored = Object.entries(tiers).map(([id, tier]) => ({
+    id,
+    tier,
+    score: { 1: 2, 2: 5, 3: 9 }[tier] || tier,
+    evidence: [],
+    label: labels[id],
+  }))
+  return buildReading(aggregateToSpheres(scored).spheres)
+}
+
 export default function App() {
   const [state, dispatch] = useReducer(illuminationReducer, { tiers: {}, evidence: {}, labels: {} })
   const [apiKey, setApiKey] = useState(() => lsGet(LS_KEY))
   const [model, setModel] = useState(() => lsGet(LS_MODEL) || DEFAULT_MODEL)
-  const [modalOpen, setModalOpen] = useState(() => !lsGet(LS_KEY))
+  const isSharedLink = typeof location !== 'undefined' && /^#r=/.test(location.hash)
+  const [modalOpen, setModalOpen] = useState(() => !lsGet(LS_KEY) && !isSharedLink)
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState(null)
+  const [toast, setToast] = useState(null)
   const [runId, setRunId] = useState(0)
   const [layoutSeed, setLayoutSeed] = useState(1) // 사람마다 별자리 배치가 달라지도록
   const [reading, setReading] = useState(null)
@@ -156,6 +173,8 @@ export default function App() {
       setStatus(null)
       setReading(null)
       setRevealStage('none')
+      // 공유 링크로 들어왔더라도 새 분석을 시작하면 해시 정리(새로고침 시 옛 결과가 뜨지 않게)
+      if (location.hash) history.replaceState(null, '', location.pathname + location.search)
       try {
         const json = await runLLM(buildExtractPrompt(allSkills()), text, EXTRACT_SCHEMA)
         const matches = Array.isArray(json) ? json : json.matches || json.nodes || json.results || []
@@ -192,6 +211,47 @@ export default function App() {
       return r
     })
   }, [])
+
+  // 공유 링크(#r=...)로 열렸을 때: 저장된 결과를 재현하고 각인 애니메이션 재생
+  useEffect(() => {
+    const m = (location.hash || '').match(/^#r=(.+)$/)
+    if (!m) return
+    const data = decodeResult(m[1])
+    if (!data) return
+    dispatch({ type: 'SET_SHARED', tiers: data.tiers, labels: data.labels })
+    setLayoutSeed(data.seed || 1)
+    const base = readingFromTiers(data.tiers, data.labels)
+    setReading({
+      ...base,
+      personal: data.personal,
+      personalLoading: false,
+      ...(data.arcana ? { arcana: data.arcana } : {}),
+    })
+    setModalOpen(false)
+    setRunId((n) => n + 1)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // 결과 공유 링크 생성 + 클립보드 복사
+  const shareResult = useCallback(async () => {
+    if (!reading) return
+    const enc = encodeResult({
+      tiers: state.tiers,
+      labels: state.labels,
+      seed: layoutSeed,
+      arcana: reading.arcana,
+      personal: reading.personal,
+    })
+    const url = `${location.origin}${location.pathname}#r=${enc}`
+    try {
+      await navigator.clipboard.writeText(url)
+      setToast('공유 링크가 복사되었습니다')
+    } catch {
+      location.hash = `r=${enc}` // 복사 실패 시 주소창에라도 반영
+      setToast('주소창의 링크를 복사해 주세요')
+    }
+    setTimeout(() => setToast(null), 2800)
+  }, [reading, state.tiers, state.labels, layoutSeed])
 
   return (
     <div className="app-root">
@@ -248,8 +308,11 @@ export default function App() {
           personalLoading={reading.personalLoading}
           onClose={() => setRevealStage('none')}
           onPickNext={() => setRevealStage('none')}
+          onShare={shareResult}
         />
       )}
+
+      {toast && <div className="toast">{toast}</div>}
 
       {modalOpen && (
         <ApiKeyModal

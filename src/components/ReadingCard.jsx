@@ -6,7 +6,7 @@ import './ReadingCard.css'
  * 뒤집히며 등장, 상단 아르카나(로마숫자+이름), 드롭캡 본문(프리셋+LLM 개인화),
  * 하단 '다음에 깃들 별'(클릭 시 해당 영역으로).
  */
-export default function ReadingCard({ reading, personal, personalLoading, onClose, onPickNext }) {
+export default function ReadingCard({ reading, personal, personalLoading, onClose, onPickNext, onShare }) {
   const cardRef = useRef(null)
   useEffect(() => {
     if (cardRef.current) cardRef.current.scrollTop = 0 // 열릴 때 맨 위부터
@@ -77,6 +77,15 @@ export default function ReadingCard({ reading, personal, personalLoading, onClos
                 ))}
               </ul>
             </div>
+          </>
+        )}
+
+        {onShare && (
+          <>
+            <div className="reading__star">✦</div>
+            <button className="reading__share" onClick={onShare}>
+              이 별자리 공유하기
+            </button>
           </>
         )}
       </div>

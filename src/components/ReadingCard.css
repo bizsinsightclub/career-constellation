@@ -211,6 +211,25 @@
   color: color-mix(in srgb, var(--bone) 70%, transparent);
 }
 
+.reading__share {
+  display: block;
+  width: 100%;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--star-gilt);
+  background: color-mix(in srgb, var(--star-gilt) 12%, transparent);
+  border: 0.5px solid color-mix(in srgb, var(--star-gilt) 55%, transparent);
+  border-radius: 3px;
+  padding: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.reading__share:hover {
+  color: var(--star-moon);
+  background: color-mix(in srgb, var(--star-gilt) 24%, transparent);
+}
+
 @media (max-width: 480px) {
   .reading-card {
     width: 100%;
