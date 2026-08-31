@@ -28,8 +28,8 @@
   max-height: 30vh;
   resize: none;
   font-family: var(--font-ui);
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: 16px; /* iOS 포커스 확대 방지(16px 이상) */
+  line-height: 1.55;
   color: var(--bone);
   background: color-mix(in srgb, var(--void) 55%, transparent);
   border: 0.5px solid color-mix(in srgb, var(--socket-dim) 80%, transparent);

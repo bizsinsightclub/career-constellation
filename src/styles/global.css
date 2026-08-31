@@ -23,6 +23,15 @@ body {
   /* 한글은 어절(단어) 단위로 줄바꿈해 중간에 끊겨 보이지 않게. 긴 토큰만 예외적으로 분리 */
   word-break: keep-all;
   overflow-wrap: anywhere;
+  /* 더블탭 확대 방지 (핀치는 gesture 차단 + viewport 잠금으로 처리) */
+  touch-action: manipulation;
+}
+
+/* iOS는 16px 미만 입력창 포커스 시 페이지를 확대함 → 16px 이상으로 고정해 확대 방지 */
+input,
+textarea,
+select {
+  font-size: 16px;
 }
 
 #root {

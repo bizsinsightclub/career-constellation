@@ -86,7 +86,7 @@
 .keymodal__select {
   width: 100%;
   font-family: var(--font-ui);
-  font-size: 13px;
+  font-size: 16px; /* iOS 포커스 확대 방지(16px 이상) */
   color: var(--bone);
   background: var(--void);
   border: 0.5px solid var(--socket-dim);
