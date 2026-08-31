@@ -1,0 +1,118 @@
+/* 상단 고정 바 */
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 56;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  pointer-events: none; /* 지도 조작이 통과하도록, 상호작용 요소만 예외 */
+}
+.topbar > * {
+  pointer-events: auto;
+}
+
+.topbar__titlewrap {
+  text-align: center;
+}
+.topbar__arcana {
+  font-family: var(--font-title-latin);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  font-size: 10px;
+  color: color-mix(in srgb, var(--star-gilt) 72%, transparent);
+  margin: 0 0 3px;
+}
+.topbar__title {
+  font-family: var(--font-title-ko);
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  font-size: clamp(18px, 2.4vw, 28px);
+  color: var(--bone);
+  margin: 0;
+  text-shadow: 0 0 22px rgba(230, 190, 106, 0.18);
+}
+
+/* 햄버거/메뉴 버튼 */
+.topbar__menu {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--veil) 55%, transparent);
+  border: 0.5px solid color-mix(in srgb, var(--star-gilt) 30%, transparent);
+  color: var(--star-gilt);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.topbar__menu:hover {
+  background: color-mix(in srgb, var(--veil) 80%, transparent);
+}
+
+/* 드롭다운 메뉴 */
+.topbar__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 56;
+}
+.topbar__dropdown {
+  position: absolute;
+  top: 56px;
+  right: 16px;
+  z-index: 57;
+  display: flex;
+  flex-direction: column;
+  min-width: 168px;
+  padding: 6px;
+  background: linear-gradient(180deg, var(--veil), color-mix(in srgb, var(--veil) 70%, var(--void)));
+  border: 0.5px solid color-mix(in srgb, var(--star-gilt) 45%, transparent);
+  border-radius: 6px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5);
+}
+.topbar__item {
+  text-align: left;
+  padding: 11px 12px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: var(--bone);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.topbar__item:hover {
+  background: color-mix(in srgb, var(--star-gilt) 14%, transparent);
+  color: var(--star-gilt);
+}
+
+/* 데스크톱: 제목 중앙, 메뉴 버튼 우측 고정 */
+@media (min-width: 641px) {
+  .topbar {
+    justify-content: center;
+    padding-top: 16px;
+  }
+  .topbar__menu {
+    position: absolute;
+    right: 20px;
+    top: 16px;
+  }
+}
+
+/* 모바일: 제목 좌측·소형, 상단에 옅은 그라디언트로 가독성 확보 */
+@media (max-width: 640px) {
+  .topbar {
+    padding: 10px 14px;
+    background: linear-gradient(180deg, var(--void) 55%, rgba(13, 10, 22, 0) 100%);
+  }
+  .topbar__titlewrap {
+    text-align: left;
+  }
+  .topbar__arcana {
+    display: none;
+  }
+}

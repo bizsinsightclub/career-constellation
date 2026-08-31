@@ -7,6 +7,7 @@ import ApiKeyModal from './components/ApiKeyModal.jsx'
 import InputPanel from './components/InputPanel.jsx'
 import ReadingCard from './components/ReadingCard.jsx'
 import NameReveal from './components/NameReveal.jsx'
+import TopBar from './components/TopBar.jsx'
 import { DEFAULT_MODEL } from './lib/models.js'
 import { generateJSON } from './lib/gemini.js'
 import { buildExtractPrompt, EXTRACT_SCHEMA } from './prompts/extract.js'
@@ -271,23 +272,18 @@ export default function App() {
 
       <CardFrame />
 
-      <header className="stage-title">
-        <p className="stage-title__arcana">✦ THE CONSTELLATION OF CAREER ✦</p>
-        <h1 className="stage-title__name">커리어 별자리</h1>
-      </header>
-
-      {litCount > 0 && (
-        <button className="reset-btn" onClick={reset}>
-          모두 끄기 ({litCount})
-        </button>
-      )}
+      <TopBar
+        hasReading={!!reading}
+        litCount={litCount}
+        onOpenSettings={() => setModalOpen(true)}
+        onOpenReading={() => setRevealStage('card')}
+        onReset={reset}
+      />
 
       <InputPanel
         hasKey={!!apiKey || devMode}
         loading={loading}
         status={status}
-        hasReading={!!reading}
-        onOpenReading={() => setRevealStage('card')}
         onAnalyze={analyze}
         onOpenSettings={() => setModalOpen(true)}
       />
