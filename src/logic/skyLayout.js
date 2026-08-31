@@ -1,39 +1,27 @@
 /*
  * skyLayout.js — 유기적 "밤하늘 별자리" 좌표.
- * 모든 점(영역 대표별 + 세부 스킬별 + 현재의 나)을 하나의 별자리 그래프로 잇는다.
- * 최소신장트리(MST)를 쓰되, 같은 영역 안 연결을 싸게(가중치↓) 해서
- * 각 영역이 작은 별자리를 이루고 영역끼리는 가장 가까운 '별'에서 다리를 놓는다.
- * → 모든 선이 실제 별↔별로 이어져 일관되고, 선은 전부 직선.
+ * 좌표를 '시드(seed)'로 매번 다르게 생성 → 사람마다 별자리 모양이 달라진다.
+ * 모든 점(영역 대표별 + 세부 스킬별 + 현재의 나)을 하나의 별자리 그래프(MST)로 잇되,
+ * 같은 영역 연결을 우선해 각 영역이 작은 별자리를 이루고 영역끼리는 가장 가까운 별에서 다리를 놓는다.
+ * 선은 전부 실제 별↔별, 직선.
  */
 
-const DOMAIN_POS = {
-  keter:   { x:   40, y: -400 }, // 비전·소명
-  hokhmah: { x: -250, y: -280 }, // 전략
-  tiferet: { x:  330, y: -275 }, // 창작·기획
-  binah:   { x: -510, y:  -70 }, // 분석·데이터
-  hod:     { x:  560, y:  -55 }, // 커뮤니케이션·영향력
-  daat:    { x: -560, y:  215 }, // 학습·자격
-  hesed:   { x:  525, y:  210 }, // 리더십·조직
-  gevurah: { x: -300, y:  375 }, // 실행·운영
-  netzah:  { x:  305, y:  385 }, // 성과·수상
-  yesod:   { x:  -20, y:  405 }, // 산업 경험
-}
 const CENTER_POS = { x: 20, y: 70 } // 현재의 나 (malkhut)
-const CROSS_PENALTY = 2.1 // 영역 간 연결 억제(같은 영역 우선)
+const CROSS_PENALTY = 2.1
 
-function hash01(str) {
-  let h = 2166136261
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i)
-    h = Math.imul(h, 16777619)
+// 시드 기반 결정적 난수 (mulberry32)
+function mulberry32(a) {
+  return function () {
+    a |= 0
+    a = (a + 0x6d2b79f5) | 0
+    let t = Math.imul(a ^ (a >>> 15), 1 | a)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
   }
-  return (h >>> 0) % 1000 / 1000
 }
 
 /*
- * 가중 최소신장트리 — 같은 영역 연결을 싸게(우선) 해서 자연스러운 별자리 도형.
- * stars: [{id, x, y, domain}] → edges: [{x1,y1,x2,y2,a,b}]
- * 켜진 별들만 넘기면 "그 별들만의 별자리"를 만들 수 있다.
+ * 가중 최소신장트리 — 같은 영역 연결을 싸게. stars:[{id,x,y,domain}] → edges.
  */
 export function weightedMst(stars, cross = CROSS_PENALTY) {
   const n = stars.length
@@ -63,42 +51,57 @@ export function weightedMst(stars, cross = CROSS_PENALTY) {
   return edges
 }
 
-export function computeSky(data) {
+export function computeSky(data, seed = 1) {
+  const rng = mulberry32((seed >>> 0) || 1)
   const spheres = data.spheres
   const centerSphere = spheres.find((s) => s.alwaysLit) || spheres[spheres.length - 1]
+  const domains = spheres.filter((s) => s.id !== centerSphere.id)
 
-  const stars = [] // {id, kind:'notable'|'skill'|'self', domain, ko?, symbol?, label?, order, x, y}
-
-  spheres.forEach((s) => {
-    const isCenter = s.id === centerSphere.id
-    const pos = isCenter ? CENTER_POS : DOMAIN_POS[s.id] || { x: 0, y: 0 }
-    stars.push({
-      id: s.id,
-      kind: isCenter ? 'self' : 'notable',
-      domain: s.id,
-      ko: s.ko,
-      symbol: s.symbol,
-      order: s.order ?? 0,
-      x: pos.x,
-      y: pos.y,
+  // 영역 배치: 중앙 둘레 섹터에 시드 각도·반지름으로 흩뿌림(반지름을 크게 흔들어 '고리' 느낌 탈피)
+  const rotation = rng() * Math.PI * 2
+  const N = domains.length
+  const domainPos = new Map()
+  domains.forEach((s, i) => {
+    const sector = rotation + (i + (rng() - 0.5) * 0.75) * ((Math.PI * 2) / N)
+    const radius = 200 + rng() * 320
+    domainPos.set(s.id, {
+      x: CENTER_POS.x + Math.cos(sector) * radius,
+      y: CENTER_POS.y + Math.sin(sector) * radius * 0.72,
     })
-    ;(s.skills || []).forEach((k, i) => {
-      const a = i * 2.3999 + hash01(k.id) * 0.9
-      const r = 46 + (i % 4) * 22 + hash01(k.id + 'r') * 26
+  })
+
+  const stars = []
+  stars.push({
+    id: centerSphere.id, kind: 'self', domain: centerSphere.id,
+    ko: centerSphere.ko, symbol: centerSphere.symbol, order: centerSphere.order ?? 99,
+    x: CENTER_POS.x, y: CENTER_POS.y,
+  })
+  domains.forEach((s) => {
+    const pos = domainPos.get(s.id)
+    stars.push({
+      id: s.id, kind: 'notable', domain: s.id, ko: s.ko, symbol: s.symbol,
+      order: s.order ?? 0, x: pos.x, y: pos.y,
+    })
+    ;(s.skills || []).forEach((k) => {
+      const a = rng() * Math.PI * 2
+      const r = 44 + rng() * 74
       stars.push({
-        id: k.id,
-        kind: 'skill',
-        domain: s.id,
-        label: k.label,
-        order: s.order ?? 0,
-        x: pos.x + Math.cos(a) * r,
-        y: pos.y + Math.sin(a) * r * 0.82,
+        id: k.id, kind: 'skill', domain: s.id, label: k.label, order: s.order ?? 0,
+        x: pos.x + Math.cos(a) * r, y: pos.y + Math.sin(a) * r * 0.85,
       })
     })
   })
 
-  // 배경 격자(전체 별의 MST) — 아주 옅게 깔리는 "아직 읽히지 않은 하늘"
   const lines = weightedMst(stars)
-
   return { stars, lines }
+}
+
+// 문자열 → 32비트 시드
+export function seedFromString(str) {
+  let h = 2166136261
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return h >>> 0
 }

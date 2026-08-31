@@ -39,8 +39,8 @@ function viewFor(bbox, fill, minS, maxS) {
   return { scale: s, tx: VBCX - s * cx, ty: VBCY - s * cy }
 }
 
-export default function ConstellationSky({ skillTiers = {}, skillLabels = {}, onSkillClick, runId = 0, onEngraveDone }) {
-  const sky = useMemo(() => computeSky(constellation), [])
+export default function ConstellationSky({ skillTiers = {}, skillLabels = {}, layoutSeed = 1, onSkillClick, runId = 0, onEngraveDone }) {
+  const sky = useMemo(() => computeSky(constellation, layoutSeed), [layoutSeed])
   const svgRef = useRef(null)
   const doneRef = useRef(onEngraveDone)
   doneRef.current = onEngraveDone

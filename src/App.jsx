@@ -13,6 +13,7 @@ import { buildInterpretPrompt, interpretUserText, INTERPRET_SCHEMA } from './pro
 import { scoreMatches } from './logic/scoring.js'
 import { allSkills, aggregateToSpheres, SKILL_IDS } from './logic/mapping.js'
 import { buildReading } from './logic/reading.js'
+import { seedFromString } from './logic/skyLayout.js'
 
 /* ── localStorage 안전 접근 ─────────────────────────── */
 const LS_KEY = 'cc.apiKey'
@@ -76,6 +77,7 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState(null)
   const [runId, setRunId] = useState(0)
+  const [layoutSeed, setLayoutSeed] = useState(1) // 사람마다 별자리 배치가 달라지도록
   const [reading, setReading] = useState(null)
   const [cardOpen, setCardOpen] = useState(false)
 
@@ -124,7 +126,18 @@ export default function App() {
       try {
         const json = await runLLM(buildInterpretPrompt(), interpretUserText(presetReading), INTERPRET_SCHEMA)
         const text = (json.reading || json.text || '').trim()
-        setReading((r) => (r ? { ...r, personal: text, personalLoading: false } : r))
+        // LLM이 창작한 아르카나가 있으면 프리셋 대신 사용(반복 방지)
+        const arcana = json.arcanaKo
+          ? {
+              roman: json.arcanaRoman || presetReading.arcana.roman,
+              ko: json.arcanaKo,
+              en: json.arcanaEn || '',
+              tagline: json.arcanaTagline || '',
+            }
+          : undefined
+        setReading((r) =>
+          r ? { ...r, personal: text, personalLoading: false, ...(arcana ? { arcana } : {}) } : r,
+        )
       } catch {
         setReading((r) => (r ? { ...r, personalLoading: false } : r))
       }
@@ -151,6 +164,7 @@ export default function App() {
           setStatus({ kind: 'info', text: '관련된 별을 찾지 못했습니다. 조금 더 구체적으로 들려주세요.' })
         } else {
           dispatch({ type: 'SET_RESULT', scored })
+          setLayoutSeed(seedFromString(scored.map((s) => s.id).sort().join(',')) || 1)
           setRunId((n) => n + 1)
           // 프리셋 해석 즉시 조립 + LLM 개인화 비동기
           const preset = buildReading(domainAgg.spheres)
@@ -188,6 +202,7 @@ export default function App() {
       <ConstellationSky
         skillTiers={state.tiers}
         skillLabels={state.labels}
+        layoutSeed={layoutSeed}
         onSkillClick={cycleSkill}
         runId={runId}
         onEngraveDone={onEngraveDone}
